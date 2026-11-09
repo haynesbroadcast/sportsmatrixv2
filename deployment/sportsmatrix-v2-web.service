@@ -1,0 +1,17 @@
+[Unit]
+Description=SportsMatrix V2 virtual control interface (no GPIO)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+User=scoreboard
+WorkingDirectory=/home/scoreboard/sports/sportsmatrix_v2_rc1
+EnvironmentFile=/home/scoreboard/sports/sportsmatrix_v2_rc1/.env
+ExecStart=/home/scoreboard/sports/sportsmatrix_v2_rc1/.venv/bin/python -m sportsmatrix.server
+Restart=on-failure
+RestartSec=5
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

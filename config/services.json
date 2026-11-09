@@ -1,0 +1,8 @@
+{
+  "worldcup": "sportsmatrix",
+  "mlb": "mlb-scoreboard",
+  "golf": "sportsmatrix",
+  "nfl": "nfl-scoreboard",
+  "nhl": "nhl-scoreboard",
+  "nba": "nba-scoreboard"
+}

@@ -1,0 +1,41 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>SportsMatrix V2</title><style>
+:root{color-scheme:dark}*{box-sizing:border-box}body{margin:0;background:#070b12;color:#f0f4f8;font:15px system-ui,sans-serif}
+main{max-width:960px;margin:30px auto;padding:16px}header{display:flex;justify-content:space-between;align-items:center;gap:10px}
+h1{font-size:28px;margin:0}small,.muted{color:#9ba9bb}.panel{background:#111b29;border:1px solid #304055;border-radius:16px;padding:22px;margin-top:18px}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}label{display:block;margin:14px 0 6px;color:#bac8d6}
+select,input,button{width:100%;padding:11px;border:1px solid #43566d;border-radius:9px;background:#1b293a;color:#fff;font:inherit}
+button{background:#e9c56c;color:#07101b;border:0;font-weight:700;cursor:pointer;margin-top:18px}button:hover{filter:brightness(1.1)}
+.preview{background:#050a11;min-height:175px;display:grid;place-items:center;border-radius:12px;padding:16px}.preview img{width:100%;max-width:512px;image-rendering:pixelated;object-fit:contain}
+#message{min-height:25px;color:#e9c56c}.hide{display:none}@media(max-width:650px){.grid{grid-template-columns:1fr}}
+</style></head><body><main>
+<header><div><h1>SportsMatrix V2</h1><small>Control center · Virtual display development</small></div><small id="health">Loading…</small></header>
+<div class="grid"><section class="panel"><h2>Display</h2>
+<label for="league">League</label><select id="league"></select>
+<label for="profile">Hardware profile</label><select id="profile"><option value="enhanced_128x64">Enhanced · 128×64</option><option value="compact_64x32">Compact · 64×32 (provisional)</option></select>
+<label for="brightness">Brightness <span id="level"></span></label><input type="range" min="1" max="100" id="brightness">
+<label for="power">Power preference</label><select id="power"><option value="on">On</option><option value="off">Off</option><option value="auto">Automatic</option></select>
+<h2>Favorites</h2><label for="favorite">Favorite team abbreviation / ID</label><input id="favorite" placeholder="e.g. SJ" maxlength="32">
+<label for="mode">Viewing mode</label><select id="mode"><option value="only">Only my team</option><option value="prefer">Prefer my team</option><option value="all">All games</option></select>
+<label for="seconds">Favorite display time (seconds)</label><select id="seconds"><option>60</option><option>90</option><option>120</option></select>
+<button id="save">Save settings</button><p id="message" role="status"></p>
+<p class="muted">Saving updates V2 settings only. Hardware control is intentionally disabled in this release.</p>
+</section><section class="panel"><h2>Display preview</h2><div class="preview"><img id="preview" alt="Recorded sports scoreboard preview"></div>
+<p class="muted">Recorded preview from the existing rendering engine, not a live game. Compact layout is provisional.</p>
+<h2>Home Assistant</h2><p class="muted">The REST API is available at <code>/api/v1/status</code> and <code>/api/v1/settings</code>. See the bundled HA integration guide.</p>
+<h2>System</h2><p class="muted">Virtual output · No GPIO access · V1 services untouched</p></section></div></main>
+<script>
+let current={}; const $=id=>document.getElementById(id);
+async function load(){let [s,l]=await Promise.all([fetch('/api/v1/status').then(r=>r.json()),fetch('/api/v1/leagues').then(r=>r.json())]);current=s.state;
+$('league').innerHTML=l.leagues.filter(x=>x.enabled).map(x=>`<option value="${x.key}">${x.label}</option>`).join('');
+for(let k of ['league','profile','brightness','power']) $(k).value=current[k]||({power:'on',profile:'enhanced_128x64'}[k]||'');
+$('health').textContent='V2 '+s.version+' · Virtual'; $('level').textContent=$('brightness').value+'%';updatePrefs();updatePreview();}
+function updatePrefs(){let p=(current.sport_preferences||{})[$('league').value]||{};$('favorite').value=p.favorite_team||'';$('mode').value=p.mode||'all';$('seconds').value=String(p.favorite_seconds||90);}
+function updatePreview(){$('preview').src='/api/v1/preview.png?league='+encodeURIComponent($('league').value)+'&profile='+encodeURIComponent($('profile').value)+'&t='+Date.now();}
+$('league').onchange=()=>{updatePrefs();updatePreview()};$('profile').onchange=updatePreview;$('brightness').oninput=()=>$('level').textContent=$('brightness').value+'%';
+$('save').onclick=async()=>{let league=$('league').value;let patch={league,profile:$('profile').value,brightness:Number($('brightness').value),power:$('power').value,sport_preferences:{[league]:{favorite_team:$('favorite').value.trim().toUpperCase(),mode:$('mode').value,favorite_seconds:Number($('seconds').value),other_seconds:30}}};
+let token=prompt('V2 API token (from your local installation configuration):');if(!token)return;
+let r=await fetch('/api/v1/settings',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(patch)});let data=await r.json();$('message').textContent=data.ok?'Settings saved to V2.':(data.error||'Unable to save');if(data.ok){current=data.state;updatePreview()};};
+load().catch(e=>$('message').textContent='Unable to load V2 API: '+e);
+</script></body></html>

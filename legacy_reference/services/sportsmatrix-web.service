@@ -1,0 +1,12 @@
+[Unit]
+Description=SportsMatrix Web UI
+After=network-online.target
+
+[Service]
+WorkingDirectory=/opt/sportsmatrix
+ExecStart=/opt/sportsmatrix/.venv/bin/python web/server.py
+Restart=always
+User=pi
+
+[Install]
+WantedBy=multi-user.target

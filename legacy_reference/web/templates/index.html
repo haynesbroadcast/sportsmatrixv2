@@ -1,0 +1,62 @@
+<!doctype html>
+<html>
+<head>
+  <title>SportsMatrix</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <style>
+    body { background:#080808; color:#eee; font-family:system-ui, sans-serif; margin:24px; }
+    .card { background:#171717; border:1px solid #333; border-radius:14px; padding:18px; margin-bottom:18px; max-width:520px; }
+    label { display:block; margin-top:12px; color:#bbb; }
+    input, select, button { width:100%; box-sizing:border-box; padding:10px; margin-top:5px; border-radius:8px; border:1px solid #444; background:#222; color:#fff; }
+    button { background:#2d6cdf; border:none; font-weight:700; margin-top:18px; }
+    h1 { margin-top:0; }
+  </style>
+</head>
+<body>
+  <h1>SportsMatrix</h1>
+
+  <div class="card">
+    <form method="post">
+      <label>League</label>
+      <select name="league">
+        {% for league in ["worldcup","mlb","nfl","nhl","nba"] %}
+          <option value="{{ league }}" {% if settings.league == league %}selected{% endif %}>{{ league.upper() }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Favorite Team</label>
+      <input name="favorite_team" value="{{ settings.favorite_team }}">
+
+      <label>Brightness</label>
+      <input type="number" name="brightness" min="1" max="100" value="{{ settings.brightness }}">
+
+      <label>Refresh Seconds</label>
+      <input type="number" name="refresh_seconds" min="15" max="600" value="{{ settings.refresh_seconds }}">
+
+      <button type="submit">Submit</button>
+    </form>
+  </div>
+
+  <div class="card">
+    <h2>Upload Logo / Flag</h2>
+    <form method="post" action="/upload-logo" enctype="multipart/form-data">
+      <label>League</label>
+      <select name="league">
+        <option value="worldcup">World Cup Flags</option>
+        <option value="mlb">MLB Logos</option>
+        <option value="nfl">NFL Logos</option>
+        <option value="nhl">NHL Logos</option>
+        <option value="nba">NBA Logos</option>
+      </select>
+
+      <label>Team Abbreviation</label>
+      <input name="abbr" placeholder="USA, SF, LAD, SJS">
+
+      <label>PNG File</label>
+      <input type="file" name="logo" accept="image/png">
+
+      <button type="submit">Upload</button>
+    </form>
+  </div>
+</body>
+</html>

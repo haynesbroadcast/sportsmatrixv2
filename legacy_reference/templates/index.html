@@ -1,0 +1,530 @@
+<!doctype html>
+<html>
+<head>
+  <title>SportsMatrix</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#090b0f">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    :root {
+      --bg: #090b0f;
+      --panel: #11151b;
+      --panel-2: #171c24;
+      --line: #242b35;
+      --line-bright: #34404e;
+      --text: #f3f4f6;
+      --muted: #8f98a6;
+      --accent: #4f8cff;
+      --accent-soft: rgba(79,140,255,.14);
+      --good: #45d483;
+      --bad: #ff6874;
+    }
+
+    body {
+      margin: 0;
+      background:
+        radial-gradient(circle at 50% -120px, #18202c 0, transparent 420px),
+        var(--bg);
+      color: var(--text);
+      font-family:
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+    .wrap {
+      width: min(620px, 100%);
+      margin: 0 auto;
+      padding: 26px 18px 40px;
+    }
+
+    .header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      margin-bottom: 24px;
+    }
+
+    .brand {
+      font-size: 29px;
+      line-height: 1;
+      font-weight: 750;
+      letter-spacing: -.8px;
+    }
+
+    .subtitle {
+      margin-top: 7px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      padding: 8px 11px;
+      border: 1px solid var(--line);
+      border-radius: 999px;
+      background: rgba(17,21,27,.8);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+    }
+
+    .dot.running {
+      background: var(--good);
+      box-shadow: 0 0 10px rgba(69,212,131,.6);
+    }
+
+    .dot.stopped {
+      background: var(--bad);
+    }
+
+    .card {
+      background: rgba(17,21,27,.94);
+      border: 1px solid var(--line);
+      border-radius: 18px;
+      padding: 18px;
+      margin-bottom: 14px;
+      box-shadow: 0 14px 35px rgba(0,0,0,.20);
+    }
+
+    .section-title {
+      margin: 0 0 4px;
+      font-size: 13px;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 1.1px;
+      font-weight: 750;
+    }
+
+    .current-name {
+      margin: 0;
+      font-size: 25px;
+      font-weight: 740;
+      letter-spacing: -.4px;
+    }
+
+    .service-name {
+      color: var(--muted);
+      font-size: 12px;
+      margin-top: 5px;
+    }
+
+    .preview-frame {
+      width: 100%;
+      margin-top: 15px;
+      background: #000;
+      border: 1px solid var(--line-bright);
+      border-radius: 11px;
+      overflow: hidden;
+      aspect-ratio: 2 / 1;
+    }
+
+    .preview {
+      width: 100%;
+      height: 100%;
+      display: block;
+      object-fit: contain;
+      image-rendering: pixelated;
+      background: #000;
+    }
+
+    .physical-display {
+      width: 100%;
+      height: 100%;
+      min-height: 170px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background:
+        linear-gradient(135deg, #08090c, #11151b);
+    }
+
+    .physical-big {
+      font-size: 24px;
+      font-weight: 750;
+    }
+
+    .physical-small {
+      color: var(--muted);
+      margin-top: 6px;
+      font-size: 13px;
+    }
+
+    .sports-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 10px;
+      margin-top: 14px;
+    }
+
+    .sport-option input {
+      display: none;
+    }
+
+    .sport-button {
+      position: relative;
+      min-height: 82px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      padding: 14px;
+      background: var(--panel-2);
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      cursor: pointer;
+      transition:
+        border-color .15s ease,
+        background .15s ease,
+        transform .15s ease;
+    }
+
+    .sport-button:active {
+      transform: scale(.985);
+    }
+
+    .sport-code {
+      color: #778191;
+      font-size: 11px;
+      font-weight: 800;
+      letter-spacing: 1.2px;
+    }
+
+    .sport-name {
+      font-size: 18px;
+      font-weight: 720;
+    }
+
+    .sport-option input:checked + .sport-button {
+      border-color: var(--accent);
+      background: var(--accent-soft);
+      box-shadow: inset 0 0 0 1px rgba(79,140,255,.22);
+    }
+
+    .sport-option input:checked + .sport-button::after {
+      content: "ACTIVE";
+      position: absolute;
+      right: 11px;
+      top: 11px;
+      font-size: 9px;
+      font-weight: 800;
+      letter-spacing: .8px;
+      color: #8db4ff;
+    }
+
+    .brightness-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 22px;
+      margin-bottom: 8px;
+    }
+
+    .brightness-label {
+      font-size: 14px;
+      font-weight: 650;
+    }
+
+    .brightness-value {
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input[type=range] {
+      width: 100%;
+      accent-color: var(--accent);
+    }
+
+    .brightness-note {
+      margin-top: 8px;
+      font-size: 11px;
+      line-height: 1.45;
+      color: #697484;
+    }
+
+    button {
+      border: 0;
+      font: inherit;
+      cursor: pointer;
+    }
+
+    .apply {
+      width: 100%;
+      margin-top: 18px;
+      padding: 13px 14px;
+      border-radius: 12px;
+      background: var(--accent);
+      color: white;
+      font-size: 14px;
+      font-weight: 750;
+    }
+
+    .utility-grid {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 9px;
+    }
+
+    .utility {
+      width: 100%;
+      min-height: 50px;
+      padding: 10px 6px;
+      border-radius: 11px;
+      background: var(--panel-2);
+      color: #d8dde5;
+      border: 1px solid var(--line);
+      font-size: 12px;
+      font-weight: 650;
+    }
+
+    .footer {
+      margin-top: 18px;
+      text-align: center;
+      color: #4f5967;
+      font-size: 11px;
+    }
+
+    @media (max-width: 420px) {
+      .wrap {
+        padding-left: 13px;
+        padding-right: 13px;
+      }
+
+      .header {
+        align-items: center;
+      }
+
+      .brand {
+        font-size: 25px;
+      }
+
+      .sport-button {
+        min-height: 76px;
+      }
+
+      .physical-display {
+        min-height: 145px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+<div class="wrap">
+
+  <header class="header">
+    <div>
+      <div class="brand">SportsMatrix</div>
+      <div class="subtitle">LED scoreboard control</div>
+    </div>
+
+    <div class="status-pill">
+      {% if status == "active" %}
+        <span class="dot running"></span>
+        Running
+      {% else %}
+        <span class="dot stopped"></span>
+        {{ status|title }}
+      {% endif %}
+    </div>
+  </header>
+
+
+  <section class="card">
+    <div class="section-title">Now Displaying</div>
+    <div class="current-name">{{ current_sport.name }}</div>
+    <div class="service-name">{{ current_service }}</div>
+
+    <div class="preview-frame">
+      {% if current_league in ["worldcup", "golf"] %}
+        <img
+          id="matrix-preview"
+          class="preview"
+          src="/preview.png?x={{ range(1,999999)|random }}"
+          alt="SportsMatrix preview"
+        >
+      {% else %}
+        <div class="physical-display">
+          <div class="physical-big">{{ current_sport.name }}</div>
+          <div class="physical-small">Physical LED display active</div>
+        </div>
+      {% endif %}
+    </div>
+  </section>
+
+
+  <form method="post" class="card">
+    <div class="section-title">Display Mode</div>
+
+    <div class="sports-grid">
+      {% for key, sport in sports.items() %}
+        <div class="sport-option">
+          <input
+            type="radio"
+            id="sport-{{ key }}"
+            name="sport"
+            value="{{ key }}"
+            {% if current_league == key %}checked{% endif %}
+          >
+
+          <label class="sport-button" for="sport-{{ key }}">
+            <span class="sport-code">{{ sport.short }}</span>
+            <span class="sport-name">{{ sport.name }}</span>
+          </label>
+        </div>
+      {% endfor %}
+    </div>
+
+
+    <div class="brightness-row">
+      <div class="brightness-label">Brightness</div>
+      <div class="brightness-value">
+        <span id="brightness-value">{{ settings.brightness }}</span>%
+      </div>
+    </div>
+
+    <input
+      id="brightness"
+      type="range"
+      name="brightness"
+      min="1"
+      max="100"
+      value="{{ settings.brightness }}"
+    >
+
+    <div class="brightness-note">
+      Brightness control currently applies directly to SportsMatrix-native modes.
+    </div>
+
+    <div style="margin-top:24px;padding-top:18px;border-top:1px solid var(--line);">
+      <div class="section-title">Display Hours</div>
+
+      <label style="
+        display:flex;
+        align-items:center;
+        justify-content:space-between;
+        margin-top:14px;
+        gap:14px;
+      ">
+        <span style="font-size:14px;font-weight:650;">Automatic schedule</span>
+
+        <input
+          type="checkbox"
+          name="schedule_enabled"
+          {% if settings.display_schedule.enabled %}checked{% endif %}
+          style="width:22px;height:22px;accent-color:var(--accent);"
+        >
+      </label>
+
+      <div style="
+        display:grid;
+        grid-template-columns:1fr 1fr;
+        gap:10px;
+        margin-top:14px;
+      ">
+        <label>
+          <div class="muted" style="margin-bottom:6px;">Turn on</div>
+          <input
+            type="time"
+            name="on_time"
+            value="{{ settings.display_schedule.on_time }}"
+            style="
+              width:100%;
+              padding:11px;
+              border:1px solid var(--line);
+              border-radius:10px;
+              background:var(--panel-2);
+              color:var(--text);
+              font:inherit;
+            "
+          >
+        </label>
+
+        <label>
+          <div class="muted" style="margin-bottom:6px;">Turn off</div>
+          <input
+            type="time"
+            name="off_time"
+            value="{{ settings.display_schedule.off_time }}"
+            style="
+              width:100%;
+              padding:11px;
+              border:1px solid var(--line);
+              border-radius:10px;
+              background:var(--panel-2);
+              color:var(--text);
+              font:inherit;
+            "
+          >
+        </label>
+      </div>
+
+      <div class="brightness-note">
+        The Pi and web interface stay online. Only the LED display services are stopped overnight.
+      </div>
+    </div>
+
+    <button class="apply" type="submit">
+      Apply Display
+    </button>
+  </form>
+
+
+  <section class="card">
+    <div class="section-title" style="margin-bottom:12px;">Utilities</div>
+
+    <div class="utility-grid">
+      <form method="post" action="/refresh">
+        <button class="utility">Refresh</button>
+      </form>
+
+      <form method="post" action="/restart">
+        <button class="utility">Restart</button>
+      </form>
+
+      <form method="post" action="/test-pattern">
+        <button class="utility">Test Pattern</button>
+      </form>
+    </div>
+  </section>
+
+  <div class="footer">
+    SportsMatrix appliance
+  </div>
+
+</div>
+
+
+<script>
+  const slider = document.getElementById("brightness");
+  const value = document.getElementById("brightness-value");
+
+  if (slider && value) {
+    slider.addEventListener("input", () => {
+      value.textContent = slider.value;
+    });
+  }
+
+  const preview = document.getElementById("matrix-preview");
+
+  if (preview) {
+    setInterval(() => {
+      preview.src = "/preview.png?x=" + Date.now();
+    }, 15000);
+  }
+</script>
+
+</body>
+</html>
