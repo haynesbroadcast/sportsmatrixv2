@@ -53,7 +53,7 @@ def create_app(config_path=None):
     def settings():
         data = request.get_json(silent=True)
         if not isinstance(data, dict): return jsonify(ok=False, error="JSON object required"), 400
-        if set(data) - {"league", "brightness", "power", "profile", "sport_preferences"}:
+        if set(data) - {"league", "brightness", "power", "profile", "sport_preferences", "schedule"}:
             return jsonify(ok=False, error="Unknown setting"), 400
         try:
             state = store.update(data)
@@ -82,6 +82,30 @@ def create_app(config_path=None):
         except (FileNotFoundError, ValueError) as exc:
             return jsonify(ok=False, error=str(exc)), 404
         return send_file(io.BytesIO(png), mimetype="image/png", max_age=0)
+
+
+    @app.get("/api/v1/teams/<league>")
+    def teams(league):
+        """Full-name provider directory. Never guess team IDs from abbreviations."""
+        paths = {"nfl": "football/nfl", "cfb": "football/college-football", "nhl": "hockey/nhl"}
+        if league not in paths:
+            return jsonify(teams=[], error="Team directory not available for this league"), 404
+        try:
+            import requests
+            url = "https://site.api.espn.com/apis/site/v2/sports/" + paths[league] + "/teams"
+            response = requests.get(url, params={"limit": 500}, timeout=9)
+            response.raise_for_status()
+            items = response.json().get("sports", [{}])[0].get("leagues", [{}])[0].get("teams", [])
+            result = []
+            for item in items:
+                team = item.get("team", {})
+                if str(team.get("id", "")).isdigit():
+                    result.append({"id": str(team["id"]), "name": team.get("displayName", ""),
+                                   "abbreviation": team.get("abbreviation", ""),
+                                   "logo": (team.get("logos") or [{}])[0].get("href", "")})
+            return jsonify(teams=sorted(result, key=lambda x: x["name"]))
+        except (requests.RequestException, ValueError, IndexError, KeyError) as exc:
+            return jsonify(teams=[], error="Team directory temporarily unavailable"), 503
 
     @app.get("/healthz")
     def health():
