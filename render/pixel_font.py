@@ -3,7 +3,7 @@
 The glyphs intentionally use thin strokes/open counters, so tiny labels
 remain legible without antialiasing on a 128x64 HUB75 panel.
 """
-from PIL import ImageDraw
+from PIL import ImageColor
 
 # Each glyph is seven rows of five bits, from top to bottom.
 GLYPHS = {
@@ -59,6 +59,7 @@ def text_width(value, spacing=1):
 def draw_text(image, x, y, value, color, spacing=1):
     """Draw glyphs at (x,y) onto an RGB/RGBA image; clips at image edges."""
     pixels = image.load()
+    color = ImageColor.getrgb(color) if isinstance(color, str) else color
     w, h = image.size
     for index, char in enumerate(str(value).upper()):
         shape = GLYPHS.get(char, GLYPHS["?"])
