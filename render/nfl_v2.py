@@ -92,16 +92,16 @@ def render(event):
     state = status["type"]["state"]
     situation = comp.get("situation") or {}
 
-    img = Image.new("RGB", (128, 64), "#080e17")
+    img = Image.new("RGB", (128, 64), "#000000")
     d = ImageDraw.Draw(img)
     possession = str(situation.get("possession", ""))
 
-    for c, x in ((away, 23), (home, 105)):
+    for c, x in ((away, 26), (home, 102)):
         team = c["team"]
         icon = logo(team)
 
         if icon:
-            icon.thumbnail((34, 30), Image.Resampling.LANCZOS)
+            icon.thumbnail((36, 31), Image.Resampling.LANCZOS)
             img.paste(icon, (x - icon.width // 2, 3), icon)
         else:
             center(d, x, 13, team.get("abbreviation", "???")[:4], 9)
@@ -110,14 +110,14 @@ def render(event):
             # Compact football icon just below the logo.
             d.ellipse((x - 5, 30, x + 5, 35), fill=GOLD)
             d.line((x - 2, 32, x + 2, 32),
-                   fill="#080e17", width=1)
+                   fill="#000000", width=1)
             d.line((x, 31, x, 34),
-                   fill="#080e17", width=1)
+                   fill="#000000", width=1)
 
         if state in ("in", "post"):
-            center(d, x, 36, str(c.get("score", "0")), 16)
+            center(d, x, 39, str(c.get("score", "0")), 18)
         else:
-            center(d, x, 39, team.get("abbreviation", "???")[:5], 8)
+            center(d, x, 43, team.get("abbreviation", "???")[:5], 10)
 
         if state == "in":
             key = (

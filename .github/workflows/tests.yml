@@ -1,0 +1,21 @@
+name: SportsMatrix tests
+
+on:
+  push:
+    branches: [main, "release/**"]
+  pull_request:
+
+jobs:
+  python-tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      - name: Install application dependencies
+        run: python -m pip install -r requirements.txt
+      - name: Compile Python source
+        run: python -m compileall -q sportsmatrix render tests
+      - name: Run unit tests (no Pi hardware required)
+        run: python -m unittest discover -s tests -v

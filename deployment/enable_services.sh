@@ -33,8 +33,11 @@ EOF
 done
 sudo systemctl daemon-reload
 if [[ "${1:-}" == '--start' ]]; then
-  sudo systemctl enable --now sportsmatrix-v2-web.service sportsmatrix-v2-worker.service sportsmatrix-v2-display.service
-  sudo systemctl --no-pager status sportsmatrix-v2-web.service sportsmatrix-v2-worker.service sportsmatrix-v2-display.service || true
+  # enable --now does not restart services that are already running. Restart
+  # ensures an update actually loads the newly installed Python source.
+  sudo systemctl enable sportsmatrix-v2-web.service sportsmatrix-v2-worker.service sportsmatrix-v2-display.service
+  sudo systemctl restart sportsmatrix-v2-web.service sportsmatrix-v2-worker.service sportsmatrix-v2-display.service
+  sudo systemctl --no-pager --full status sportsmatrix-v2-web.service sportsmatrix-v2-worker.service sportsmatrix-v2-display.service || true
 else
   echo 'Service units installed, not started. Run: bash deployment/enable_services.sh --start'
 fi
