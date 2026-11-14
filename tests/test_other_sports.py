@@ -8,7 +8,7 @@ from zoneinfo import ZoneInfo
 
 from PIL import Image
 from render.other_sports import render, render_no_games, SPORT
-from sportsmatrix.other_feeds import ESPN_PATHS, fetch_events, parse_pwhl, prioritize
+from sportsmatrix.other_feeds import ESPN_PATHS, fetch_events, prioritize
 from sportsmatrix.registry import supported
 from sportsmatrix.preview import render_fixture
 from sportsmatrix.worker import VirtualWorker
@@ -34,7 +34,7 @@ def event(score_away="108", score_home="112", state="in"):
 
 class OtherSportsTests(unittest.TestCase):
     def test_all_remaining_leagues_enabled(self):
-        self.assertEqual(set(SPORT), {"nba", "wnba", "mlb", "mls", "nwsl", "epl", "pwhl", "pll"})
+        self.assertEqual(set(SPORT), {"nba", "wnba", "mlb", "mls", "nwsl", "epl"})
         self.assertTrue(set(SPORT).issubset(supported()))
 
     def test_all_new_leagues_render_and_preview(self):
@@ -86,7 +86,7 @@ class OtherSportsTests(unittest.TestCase):
                     self.assertTrue((root / "live.png").exists())
 
     def test_espn_feed_mapping_and_worker_dispatch(self):
-        self.assertEqual(len(ESPN_PATHS), 7)
+        self.assertEqual(len(ESPN_PATHS), 6)
         response = MagicMock()
         response.json.return_value = {"events": [event()]}
         with patch("sportsmatrix.other_feeds.requests.get", return_value=response) as get:
@@ -99,18 +99,6 @@ class OtherSportsTests(unittest.TestCase):
             with patch("sportsmatrix.other_feeds.fetch_events", return_value=[event()]) as fetch:
                 self.assertEqual(len(worker.fetch("mlb")), 1)
                 fetch.assert_called_once_with("mlb")
-
-    def test_pwhl_adapter_no_invented_scores(self):
-        payload = {"SiteKit": {"Scorebar": [
-            {"ID": "44", "Date": "2026-11-15", "ScheduledTime": "15:00",
-             "GameStatus": "1", "home_team_name": "Toronto",
-             "visiting_team_name": "Montreal"},
-        ]}}
-        games = parse_pwhl(payload)
-        self.assertEqual(len(games), 1)
-        self.assertEqual(games[0]["id"], "pwhl_44")
-        self.assertEqual(games[0]["status"]["type"]["state"], "pre")
-        self.assertIsNone(games[0]["competitions"][0]["competitors"][0]["score"])
 
     def test_prioritize_live_before_upcoming(self):
         now = datetime(2026, 11, 15, 11, tzinfo=ZoneInfo("America/Los_Angeles"))
