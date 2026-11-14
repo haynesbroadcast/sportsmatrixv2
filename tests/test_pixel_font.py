@@ -3,9 +3,10 @@ from unittest.mock import patch
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
-from PIL import Image
+from PIL import Image, ImageDraw
 from render.pixel_font import GLYPHS, text_width, draw_text, center_text
 from render import nfl_v2, nhl_v2, cfb_v2
+from render.timeout_pips import draw_timeouts, faded_color
 
 
 def live_game():
@@ -46,6 +47,18 @@ class BitmapTests(unittest.TestCase):
         self.assertEqual(nfl_v2.compact_down("1st & 10"), "1&10")
         self.assertEqual(nfl_v2.compact_down("3rd & Goal"), "3&G")
 
+    def test_timeout_size_intensity_and_three_digit_fallback(self):
+        self.assertEqual(faded_color("#e9c56c"), (47, 39, 22))
+        im = Image.new("RGB", (128, 64), (0, 0, 0))
+        draw_timeouts(ImageDraw.Draw(im), "away", 1, "105", "#e9c56c")
+        # 3-digit scores use the outermost four columns, never a bottom row.
+        for y, color in ((38, (233, 197, 108)), (43, (47, 39, 22)),
+                         (48, (47, 39, 22))):
+            for x in range(4):
+                self.assertEqual(im.getpixel((x, y)), color)
+        self.assertEqual(im.getpixel((4, 38)), (0, 0, 0))
+        self.assertEqual(im.getpixel((0, 60)), (0, 0, 0))
+
     def test_renderers_and_dimmed_timeout_pips(self):
         event = live_game()
         for renderer in (nfl_v2, nhl_v2, cfb_v2):
@@ -57,10 +70,15 @@ class BitmapTests(unittest.TestCase):
                     self.assertEqual(img.size, (128, 64))
                     self.assertEqual(img.getpixel((0, 63)), (0, 0, 0))
                     if renderer in (nfl_v2, cfb_v2):
-                        self.assertEqual(img.getpixel((18, 60)), (233, 197, 108))
-                        self.assertEqual(img.getpixel((32, 60)), (12, 10, 5))
-                        self.assertEqual(img.getpixel((94, 60)), (233, 197, 108))
-                        self.assertEqual(img.getpixel((101, 60)), (12, 10, 5))
+                        self.assertEqual(img.getpixel((0, 47)), (233, 197, 108))
+                        self.assertEqual(img.getpixel((5, 47)), (233, 197, 108))
+                        self.assertEqual(img.getpixel((10, 47)), (47, 39, 22))
+                        self.assertEqual(img.getpixel((114, 47)), (233, 197, 108))
+                        self.assertEqual(img.getpixel((119, 47)), (47, 39, 22))
+                        self.assertEqual(img.getpixel((124, 47)), (47, 39, 22))
+                        # No separate timeout band below the score.
+                        self.assertEqual(img.getpixel((0, 60)), (0, 0, 0))
+                        self.assertEqual(img.getpixel((127, 60)), (0, 0, 0))
 
 
 if __name__ == "__main__":
