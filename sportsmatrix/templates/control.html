@@ -16,7 +16,17 @@ document.querySelectorAll('[data-tab]').forEach(b=>b.onclick=()=>tab(b.dataset.t
 function paint(){document.querySelectorAll('[data-profile]').forEach(b=>{b.classList.toggle('selected',b.dataset.profile===profile);b.setAttribute('aria-pressed',String(b.dataset.profile===profile))});document.querySelectorAll('[data-league]').forEach(b=>{b.classList.toggle('selected',b.dataset.league===selectedLeague);b.setAttribute('aria-pressed',String(b.dataset.league===selectedLeague))});$('selectedName').textContent=(leagues.find(l=>l.key===selectedLeague)||{}).label||selectedLeague.toUpperCase();$('profileName').textContent=profile==='compact_64x32'?'64 × 32':'128 × 64';$('preview').src='/api/v1/preview.png?league='+encodeURIComponent(selectedLeague)+'&profile='+encodeURIComponent(profile)+'&t='+Date.now()}
 function renderSports(){let wrap=$('sports');wrap.replaceChildren();leagues.forEach(l=>{let b=document.createElement('button');b.className='tile';b.dataset.league=l.key;b.disabled=!l.enabled;let a=document.createElement('strong');a.textContent=(icons[l.key]||'◆')+' '+(l.key==='cfb'?'CFB':l.key.toUpperCase());let sm=document.createElement('small');sm.textContent=l.enabled?l.label:'COMING LATER';b.append(a,sm);b.onclick=()=>{selectedLeague=l.key;paint()};wrap.append(b)});paint()}
 function setStatus(id,text){$(id).textContent=text}
-async function save(patch,msg){let token=sessionStorage.getItem('sm_token');if(!token){token=prompt('Enter your local V2 API token (stored only for this browser tab):');if(!token)return;sessionStorage.setItem('sm_token',token)}let r=await fetch('/api/v1/settings',{method:'PUT',headers:{'Content-Type':'application/json','Authorization':'Bearer '+token},body:JSON.stringify(patch)});if(r.status===401){sessionStorage.removeItem('sm_token');throw Error('Incorrect API token; retry to enter it again')}let data=await r.json();if(!r.ok||!data.ok)throw Error(data.error||'Unable to save');current=data.state;setStatus(msg,'Saved to V2');return data}
+async function save(patch,msg){
+  const r=await fetch('/api/v1/settings',{
+    method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(patch)
+  });
+  let data;
+  try{data=await r.json()}catch(_){throw Error('Unable to read scoreboard response (HTTP '+r.status+')')}
+  if(!r.ok||!data.ok)throw Error(data.error||'Unable to save');
+  current=data.state;
+  setStatus(msg,'Saved to scoreboard');
+  return data;
+}
 $('apply').onclick=async()=>{try{await save({league:selectedLeague,profile:'enhanced_128x64',brightness:Number($('brightness').value)},'message');paint()}catch(e){setStatus('message',e.message)}};
 document.querySelectorAll('[data-profile]').forEach(b=>b.onclick=()=>{if(b.disabled)return;profile=b.dataset.profile;paint()});$('brightness').oninput=()=>{$('level').textContent=$('brightness').value+'%';$('scheduleBrightness').value=$('brightness').value;$('scheduleLevel').textContent=$('brightness').value+'%'};$('scheduleBrightness').oninput=()=>{$('brightness').value=$('scheduleBrightness').value;$('brightness').oninput()};
 $('brightness').onchange=async()=>{try{await save({brightness:Number($('brightness').value)},'message')}catch(e){setStatus('message',e.message)}};
