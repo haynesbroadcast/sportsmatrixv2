@@ -86,6 +86,8 @@ def render(event):
 
     img = Image.new("RGB", (128, 64), BG)
     d = ImageDraw.Draw(img)
+    # HUB75 panel: keep text glyph edges pixel-sharp, not grayscale-antialiased.
+    d.fontmode = "1"
 
     for c, x in ((away, 26), (home, 102)):
         icon = logo(c["team"])
