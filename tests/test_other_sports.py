@@ -7,7 +7,7 @@ from unittest.mock import patch, MagicMock
 from zoneinfo import ZoneInfo
 
 from PIL import Image
-from render.other_sports import render, SPORT
+from render.other_sports import render, render_no_games, SPORT
 from sportsmatrix.other_feeds import ESPN_PATHS, fetch_events, parse_pwhl, prioritize
 from sportsmatrix.registry import supported
 from sportsmatrix.preview import render_fixture
@@ -63,6 +63,27 @@ class OtherSportsTests(unittest.TestCase):
             with Image.open(path) as im:
                 # Scores are replaced with abbreviations before tipoff.
                 self.assertEqual(im.getpixel((26, 61)), (0, 0, 0))
+
+    def test_no_games_screen_and_worker_publish(self):
+        with TemporaryDirectory() as directory:
+            root = Path(directory)
+            path = root / "no_games.png"
+            render_no_games("wnba", path)
+            with Image.open(path) as image:
+                self.assertEqual(image.size, (128, 64))
+                self.assertGreater(len(image.getcolors(128 * 64)), 1)
+            worker = VirtualWorker(root / "settings.json")
+            with patch("sportsmatrix.other_feeds.fetch_events", return_value=[]), \
+                 patch("sportsmatrix.worker.OUT", root / "live.png"), \
+                 patch("sportsmatrix.worker.STATUS", root / "state.json"):
+                worker.store.update({"league": "wnba"})
+                # Override renderer output to avoid writing to the repository
+                # while still exercising the real no-games frame.
+                from render import other_sports
+                with patch.object(other_sports, "OUTPUT", root / "render.png"):
+                    result = worker.tick()
+                    self.assertEqual(result["event_id"], "no_games")
+                    self.assertTrue((root / "live.png").exists())
 
     def test_espn_feed_mapping_and_worker_dispatch(self):
         self.assertEqual(len(ESPN_PATHS), 7)
