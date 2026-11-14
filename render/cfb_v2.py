@@ -90,7 +90,7 @@ def render(event):
     state = status["type"]["state"]
     situation = comp.get("situation") or {}
 
-    img = Image.new("RGB", (128, 64), "#080e17")
+    img = Image.new("RGB", (128, 64), "#000000")
     d = ImageDraw.Draw(img)
     possession = str(situation.get("possession", ""))
 

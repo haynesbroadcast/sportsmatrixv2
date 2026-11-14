@@ -15,7 +15,7 @@ TZ = ZoneInfo("America/Los_Angeles")
 GOLD = "#e9c56c"
 WHITE = "#f5f6f8"
 DIM = "#344253"
-BG = "#080e17"
+BG = "#000000"
 
 def fetch(url):
     req = urllib.request.Request(url, headers={"User-Agent": "SportsMatrixV2/1.0"})
