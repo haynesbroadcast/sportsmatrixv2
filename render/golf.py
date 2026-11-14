@@ -7,7 +7,7 @@ MAX_PAGES = 4
 
 def _font(size=8):
     return ImageFont.truetype(
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf",
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf",
         size
     )
 
