@@ -101,7 +101,7 @@ def create_app(config_path=None):
                  "nhl": "hockey/nhl", "nba": "basketball/nba",
                  "wnba": "basketball/wnba", "mlb": "baseball/mlb",
                  "mls": "soccer/usa.1", "nwsl": "soccer/usa.nwsl",
-                 "epl": "soccer/eng.1", "pll": "lacrosse/pll"}
+                 "epl": "soccer/eng.1"}
         if league not in paths:
             return jsonify(teams=[], error="Team directory not available for this league"), 404
         try:
