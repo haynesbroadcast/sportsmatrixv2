@@ -8,6 +8,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
 from .pixel_font import center_text as bitmap_center
+from .timeout_pips import draw_timeouts
 
 BASE = Path(__file__).resolve().parent.parent
 CACHE = BASE / "assets/nfl"
@@ -139,13 +140,8 @@ def render(event):
             )
             remaining = situation.get(key)
             if remaining is not None:
-                remaining = max(0, min(3, int(remaining)))
-                for i in range(3):
-                    # Tiny 2x2 markers; spent timeouts remain at ~5% LED color.
-                    left = x - 8 + i * 7
-                    dim_gold = tuple(round(int(GOLD[j:j+2], 16) * .05) for j in (1, 3, 5))
-                    d.rectangle((left, 60, left + 1, 61),
-                                fill=GOLD if i < remaining else dim_gold)
+                draw_timeouts(d, c["homeAway"], remaining,
+                              c.get("score", "0"), GOLD)
 
     if state == "in":
         period = int(status.get("period") or 0)
