@@ -34,15 +34,24 @@ class ControlTests(unittest.TestCase):
         self.assertIn('data-profile="compact_64x32" disabled', html)
         s=self.client.get('/api/v1/status')
         self.assertEqual(s.status_code, 200)
-        self.assertEqual(s.json['version'], '0.06')
+        self.assertEqual(s.json['version'], '0.07')
         self.assertIn('state', s.json)
         self.assertIn('hardware_active', s.json)
         l=self.client.get('/api/v1/leagues')
         self.assertEqual(l.status_code, 200)
         self.assertTrue(any(x['key']=='nhl' for x in l.json['leagues']))
 
-    def test_auth(self):
-        self.assertEqual(self.client.put('/api/v1/settings', json={'league':'nhl'}).status_code, 401)
+    def test_local_controls_do_not_require_token(self):
+        self.assertEqual(self.client.put('/api/v1/settings', json={'brightness':60}).status_code, 200)
+        self.assertEqual(self.client.get('/api/v1/status').json['state']['brightness'], 60)
+    def test_optional_auth(self):
+        from unittest.mock import patch
+        with patch.dict('os.environ', {'SPORTSMATRIX_REQUIRE_AUTH':'1','SPORTSMATRIX_API_TOKEN':'test-secret'}):
+            app=create_app(self.path)
+            client=app.test_client()
+            self.assertEqual(client.put('/api/v1/settings', json={'brightness':60}).status_code, 401)
+            self.assertEqual(client.put('/api/v1/settings', json={'brightness':60},
+                headers={'Authorization':'Bearer test-secret'}).status_code, 200)
     def test_health(self): self.assertTrue(self.client.get('/healthz').json['ok'])
     def test_validation(self):
         import os

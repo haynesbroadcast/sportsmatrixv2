@@ -20,7 +20,9 @@ def create_app(config_path=None):
 
     @app.before_request
     def protect_writes():
-        if request.method not in ("GET", "HEAD", "OPTIONS"):
+        # Local-workbench default: no password required to change the display.
+        # Opt back into write authentication with SPORTSMATRIX_REQUIRE_AUTH=1.
+        if request.method not in ("GET", "HEAD", "OPTIONS") and os.environ.get("SPORTSMATRIX_REQUIRE_AUTH", "0") == "1":
             if not token or request.headers.get("Authorization") != "Bearer " + token:
                 return jsonify(error="API token required", ok=False), 401
 
