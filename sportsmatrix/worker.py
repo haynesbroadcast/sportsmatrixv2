@@ -72,7 +72,7 @@ class VirtualWorker:
         if league != self.league:
             self.league, self.events, self.current_id, self.last_fetch, self.last_rotate = league, [], None, 0, 0
         # Re-fetch all games every five minutes; update at 15 seconds while live.
-        live = league == "golf" or any(e.get("status",{}).get("type",{}).get("state")=="in" for e in self.events)
+        live = league == "golf" or (isinstance(self.events, list) and any(e.get("status",{}).get("type",{}).get("state")=="in" for e in self.events))
         interval = 15 if live else 300
         if self.last_fetch == 0 or now-self.last_fetch >= interval:
             try:
@@ -105,6 +105,7 @@ class VirtualWorker:
         if settings.get("power", "on")=="off": return None
         profile=self.render(league,event,self.page)
         payload={"league":league,"event_id":ident,"profile":profile,"updated_at":time.time(),"mode":"live_virtual"}
+        STATUS.parent.mkdir(parents=True, exist_ok=True)
         temp=STATUS.with_suffix(".tmp")
         temp.write_text(json.dumps(payload))
         os.replace(temp,STATUS)

@@ -26,6 +26,8 @@ def render_fixture(league, profile="enhanced_128x64"):
     if league not in ("nhl", "nfl", "cfb", "golf"):
         raise ValueError("No renderer for this league")
     source = BASE / "output" / {"nhl":"nhl_v2_first.png", "nfl":"nfl_large_logos_v2.png", "cfb":"cfb_v2.png", "golf":"golf_v2.png"}[league]
+    if not source.exists():
+        source = BASE / "tests" / "fixtures" / source.name
     if not source.exists(): raise FileNotFoundError("Fixture preview unavailable")
     image = output_for(profile, source)
     stream = io.BytesIO()
