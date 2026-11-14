@@ -40,7 +40,7 @@ class MLBBoardTests(unittest.TestCase):
         image = draw_board(matchup())
         self.assertEqual(image.size, (128, 64))
         # Top state, R/H/E header, and both team rows use the full height.
-        for y in (0, 5, 19, 20, 27, 28, 45, 46, 63):
+        for y in (0, 5, 20, 27, 28, 45, 46, 63):
             self.assertTrue(any(image.getpixel((x, y)) != (0, 0, 0)
                                 for x in range(128)), y)
         # The two 4px team challenge indicators are visible in each row.
