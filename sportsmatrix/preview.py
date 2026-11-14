@@ -44,6 +44,24 @@ def render_fixture(league, profile="enhanced_128x64"):
             ], "situation": {"outs": 1, "onFirst": True,
                               "onSecond": False, "onThird": True}}],
         }
+        if league == "mlb":
+            demo["status"]["period"] = 7
+            demo["status"]["type"]["shortDetail"] = "Top 7th"
+            demo["competitions"][0]["situation"] = {
+                "balls": 2, "strikes": 1, "outs": 2,
+                "isBottomInning": False,
+                "onFirst": True, "onSecond": False, "onThird": True,
+            }
+            demo["competitions"][0]["competitors"] = [
+                {"homeAway": "away", "score": "7",
+                 "team": {"abbreviation": "LAD", "color": "00458A"},
+                 "statistics": [{"name": "hits", "displayValue": "10"},
+                                {"name": "errors", "displayValue": "0"}]},
+                {"homeAway": "home", "score": "8",
+                 "team": {"abbreviation": "SF", "color": "FD5A1E"},
+                 "statistics": [{"name": "hits", "displayValue": "12"},
+                                {"name": "errors", "displayValue": "1"}]},
+            ]
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "sample.png"
             render(demo, league, path, sample=True)
