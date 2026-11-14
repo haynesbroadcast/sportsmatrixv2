@@ -100,6 +100,17 @@ class OtherSportsTests(unittest.TestCase):
                 self.assertEqual(len(worker.fetch("mlb")), 1)
                 fetch.assert_called_once_with("mlb")
 
+    def test_epl_fetch_looks_three_weeks_ahead(self):
+        response = MagicMock()
+        response.json.return_value = {"events": []}
+        fixed = datetime(2026, 11, 13, 20, tzinfo=ZoneInfo("America/Los_Angeles"))
+        with patch("sportsmatrix.other_feeds.datetime") as clock, \
+             patch("sportsmatrix.other_feeds.requests.get", return_value=response) as get:
+            clock.now.return_value = fixed
+            fetch_events("epl")
+        self.assertEqual(get.call_args.kwargs["params"]["dates"],
+                         "20261111-20261204")
+
     def test_prioritize_live_before_upcoming(self):
         now = datetime(2026, 11, 15, 11, tzinfo=ZoneInfo("America/Los_Angeles"))
         game_a = event(state="pre")
