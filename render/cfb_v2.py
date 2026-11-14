@@ -92,6 +92,8 @@ def render(event):
 
     img = Image.new("RGB", (128, 64), "#000000")
     d = ImageDraw.Draw(img)
+    # HUB75 panel: keep text glyph edges pixel-sharp, not grayscale-antialiased.
+    d.fontmode = "1"
     possession = str(situation.get("possession", ""))
 
     for c, x in ((away, 26), (home, 102)):
