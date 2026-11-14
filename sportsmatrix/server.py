@@ -43,10 +43,18 @@ def create_app(config_path=None):
                 if time.time() - candidate.get("updated_at", 0) < 120:
                     virtual_state = candidate
             except (ValueError, OSError, TypeError): pass
-        return jsonify(version=__version__, state=state, virtual_state=virtual_state,
+        hardware_status_path = BASE / "output" / "hardware_state.json"
+        hardware_status = None
+        if hardware_status_path.exists():
+            try:
+                candidate = json.loads(hardware_status_path.read_text())
+                if time.time() - candidate.get("updated_at", 0) < 15:
+                    hardware_status = candidate
+            except (ValueError, OSError, TypeError): pass
+        return jsonify(version=__version__, state=state, virtual_state=virtual_state, hardware_status=hardware_status,
                        available_leagues=list(supported()),
                        profiles={key: {"cols": size[0], "rows": size[1]} for key,size in PROFILES.items()},
-                       output="virtual", hardware_active=False,
+                       output="physical" if hardware_status else "virtual", hardware_active=bool(hardware_status),
                        preview_mode="recorded_fixture")
 
     @app.put("/api/v1/settings")
