@@ -24,7 +24,7 @@ def fetch(url):
 
 def font(size):
     return ImageFont.truetype(
-        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf", size
+        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", size
     )
 
 def center(d, x, y, value, size, color=WHITE):
