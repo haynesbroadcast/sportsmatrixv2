@@ -201,3 +201,22 @@ def render(event, league, output_path=None, *, sample=False):
     output_path.parent.mkdir(parents=True, exist_ok=True)
     image.save(output_path)
     return output_path
+
+
+def render_no_games(league, output_path=None):
+    """An explicit empty-season state, never a fictional matchup or stale frame."""
+    if league not in SPORT:
+        raise ValueError("Unsupported league: " + str(league))
+    output_path = Path(output_path or OUTPUT)
+    image = Image.new("RGB", (128, 64), "#000000")
+    draw = ImageDraw.Draw(image)
+    draw.fontmode = "1"
+    label = {"epl": "EPL", "nwsl": "NWSL", "mls": "MLS",
+             "pwhl": "PWHL", "pll": "PLL", "nba": "NBA",
+             "wnba": "WNBA", "mlb": "MLB"}[league]
+    bitmap_center(image, 64, 4, label, GOLD)
+    centered(draw, 64, 24, "NO GAMES", 13, WHITE, 110)
+    bitmap_center(image, 64, 47, "CHECK LATER", DIM)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    image.save(output_path)
+    return output_path
