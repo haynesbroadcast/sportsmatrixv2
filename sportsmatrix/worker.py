@@ -37,7 +37,8 @@ class VirtualWorker:
         if league == "golf":
             from plugins.espn import fetch_golf_leaderboard
             return fetch_golf_leaderboard()
-        raise ValueError("Unsupported league")
+        from .other_feeds import fetch_events
+        return fetch_events(league)
     def render(self, league, event, page=0):
         if league == "nhl":
             from render.nhl_v2 import render, OUTPUT
@@ -48,10 +49,13 @@ class VirtualWorker:
         elif league == "cfb":
             from render.cfb_v2 import render, OUTPUT
             render(event)
-        else:
+        elif league == "golf":
             from render.golf import render_golf
             OUTPUT = BASE / "output" / "golf_v2.png"
             render_golf(event, {}, OUTPUT, page=page)
+        else:
+            from render.other_sports import render, OUTPUT
+            render(event, league)
         from .preview import output_for
         profile = self.store.read().get("profile", "enhanced_128x64")
         image = output_for(profile, OUTPUT)
