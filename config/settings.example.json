@@ -1,0 +1,29 @@
+{
+  "league": "cfb",
+  "favorite_team": "",
+  "timezone": "America/Los_Angeles",
+  "brightness": 50,
+  "refresh_seconds": 60,
+  "final_hold_minutes": 15,
+  "next_day_countdown_start_hour": 7,
+  "display": {
+    "rows": 64,
+    "cols": 128,
+    "gpio_mapping": "adafruit-hat",
+    "slowdown_gpio": 2
+  },
+  "display_schedule": {
+    "enabled": true,
+    "on_time": "08:00",
+    "off_time": "22:00",
+    "override": "on"
+  },
+  "sport_preferences": {
+    "nhl": {
+      "favorite_team": "SJ",
+      "mode": "only",
+      "favorite_seconds": 90,
+      "other_seconds": 30
+    }
+  }
+}
