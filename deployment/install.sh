@@ -1,12 +1,20 @@
 #!/usr/bin/env bash
-# SportsMatrix v0.03 installation: isolated V2 deployment, no changes to V1.
+# SportsMatrix v0.04 installation: isolated V2 deployment, no changes to V1.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+case "${1:-}" in
+  --start|"") ;;
+  --help|-h)
+    printf 'Usage: bash deployment/install.sh [--start]\n'
+    printf 'Without --start, installs and tests but does not activate services.\n'
+    exit 0 ;;
+  *) echo "Unknown option: $1 (expected --start or --help)" >&2; exit 2 ;;
+esac
 if [[ "$EUID" -eq 0 ]]; then echo 'Run as the scoreboard user, not sudo/root.' >&2; exit 1; fi
 command -v sudo >/dev/null || { echo 'sudo is required' >&2; exit 1; }
 command -v git >/dev/null || { echo 'git is required' >&2; exit 1; }
-echo 'Installing SportsMatrix v0.03 prerequisites...'
+echo 'Installing SportsMatrix v0.04 prerequisites...'
 sudo apt-get update
 sudo apt-get install -y python3-venv python3-dev build-essential cmake git pkg-config
 if [[ ! -x .venv/bin/python ]]; then python3 -m venv .venv; fi
@@ -22,7 +30,10 @@ fi
 .venv/bin/python -m pip install "$DRIVER"
 .venv/bin/python -c 'from rgbmatrix import RGBMatrix, RGBMatrixOptions; print("RGB matrix binding OK")'
 # Migrate existing settings only when installing side by side; never overwrite local config.
-OLD="${SPORTSMATRIX_PREVIOUS_DIR:-$HOME/sports/sportsmatrixv2}"
+OLD="${SPORTSMATRIX_PREVIOUS_DIR:-$HOME/sports/sportsmatrixv2-v0.03}"
+if [[ ! -f "$OLD/config/settings.json" && -f "$HOME/sports/sportsmatrixv2/config/settings.json" ]]; then
+  OLD="$HOME/sports/sportsmatrixv2"
+fi
 if [[ "$OLD" != "$ROOT" && -f "$OLD/config/settings.json" && ! -f config/.migrated ]]; then
   mkdir -p config
   if [[ -f config/settings.json ]]; then cp config/settings.json config/settings.package-default.json; fi
@@ -52,6 +63,8 @@ if [[ ! -f .env ]]; then
   printf 'SPORTSMATRIX_API_TOKEN=%s\nSPORTSMATRIX_HOST=0.0.0.0\nSPORTSMATRIX_PORT=8082\n' "$TOKEN" > .env
   chmod 600 .env
 fi
+# Credentials stay local; never print tokens to the terminal or commit .env.
+chmod 600 .env
 printf '\nInstalled and tests passed. Services have NOT been enabled.\n'
 if [[ "${1:-}" == '--start' ]]; then
   bash deployment/enable_services.sh --start
