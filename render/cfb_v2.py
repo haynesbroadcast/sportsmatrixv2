@@ -7,6 +7,7 @@ from pathlib import Path
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
 from .pixel_font import center_text as bitmap_center
+from .timeout_pips import draw_timeouts
 from .nfl_v2 import compact_down
 
 BASE = Path(__file__).resolve().parent.parent
@@ -124,12 +125,8 @@ def render(event):
                    else "homeTimeouts")
             remaining = situation.get(key)
             if remaining is not None:
-                remaining = max(0, min(3, int(remaining)))
-                dim_gold = tuple(round(int(GOLD[j:j+2], 16) * .05) for j in (1, 3, 5))
-                for i in range(3):
-                    left = x - 8 + i * 7
-                    d.rectangle((left, 60, left + 1, 61),
-                                fill=GOLD if i < remaining else dim_gold)
+                draw_timeouts(d, c["homeAway"], remaining,
+                              c.get("score", "0"), GOLD)
 
     if state == "in":
         period = status.get("period", 0)
