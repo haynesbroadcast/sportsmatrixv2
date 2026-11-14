@@ -34,7 +34,7 @@ class ControlTests(unittest.TestCase):
         self.assertIn('data-profile="compact_64x32" disabled', html)
         s=self.client.get('/api/v1/status')
         self.assertEqual(s.status_code, 200)
-        self.assertEqual(s.json['version'], '0.11')
+        self.assertEqual(s.json['version'], '0.12')
         self.assertIn('state', s.json)
         self.assertIn('hardware_active', s.json)
         l=self.client.get('/api/v1/leagues')
@@ -52,6 +52,44 @@ class ControlTests(unittest.TestCase):
             self.assertEqual(client.put('/api/v1/settings', json={'brightness':60}).status_code, 401)
             self.assertEqual(client.put('/api/v1/settings', json={'brightness':60},
                 headers={'Authorization':'Bearer test-secret'}).status_code, 200)
+    def test_home_assistant_state_and_controls(self):
+        initial = self.client.get('/api/v1/ha/state')
+        self.assertEqual(initial.status_code, 200)
+        self.assertEqual(initial.json['league'], 'nhl')
+        self.assertIn('epl', initial.json['available_leagues'])
+        self.assertNotIn('pll', initial.json['available_leagues'])
+        self.assertNotIn('pwhl', initial.json['available_leagues'])
+        response = self.client.post('/api/v1/ha/control', json={
+            'league': 'epl', 'brightness': 42, 'power': 'on'})
+        self.assertEqual(response.status_code, 200)
+        self.assertTrue(response.json['ok'])
+        self.assertEqual(self.client.get('/api/v1/ha/state').json['league'], 'epl')
+        self.assertEqual(self.client.get('/api/v1/status').json['state']['brightness'], 42)
+        self.assertEqual(self.client.post('/api/v1/ha/control',
+                                           json={'league': 'pll'}).status_code, 400)
+        self.assertEqual(self.client.post('/api/v1/ha/control',
+                                           json={'brightness': 101}).status_code, 400)
+        self.assertEqual(self.client.post('/api/v1/ha/control',
+                                           json={'power': 'invalid'}).status_code, 400)
+        self.assertEqual(self.client.post('/api/v1/ha/control',
+                                           json={'unknown': 12}).status_code, 400)
+        self.assertEqual(self.client.post('/api/v1/ha/control',
+                                           json={}).status_code, 400)
+        self.assertEqual(self.client.post('/api/v1/ha/control',
+                                           data='no', content_type='text/plain').status_code, 400)
+        self.assertEqual(self.client.get('/api/v1/ha/state').json['brightness'], 42)
+
+    def test_home_assistant_auth_opt_in(self):
+        from unittest.mock import patch
+        with patch.dict('os.environ', {'SPORTSMATRIX_REQUIRE_AUTH': '1',
+                                      'SPORTSMATRIX_API_TOKEN': 'test-secret'}):
+            client = create_app(self.path).test_client()
+            self.assertEqual(client.post('/api/v1/ha/control',
+                                         json={'league': 'nfl'}).status_code, 401)
+            self.assertEqual(client.post('/api/v1/ha/control',
+                                         json={'league': 'nfl'},
+                                         headers={'Authorization': 'Bearer test-secret'}).status_code, 200)
+
     def test_health(self): self.assertTrue(self.client.get('/healthz').json['ok'])
     def test_validation(self):
         import os
