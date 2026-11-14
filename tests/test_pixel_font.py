@@ -41,6 +41,11 @@ class BitmapTests(unittest.TestCase):
         self.assertEqual(colors, {(0, 0, 0), (233, 197, 108)})
         self.assertEqual(im.getpixel((0, 0)), (0, 0, 0))
 
+    def test_down_distance_compression_keeps_the_distance(self):
+        self.assertEqual(nfl_v2.compact_down("2nd & 8"), "2&8")
+        self.assertEqual(nfl_v2.compact_down("1st & 10"), "1&10")
+        self.assertEqual(nfl_v2.compact_down("3rd & Goal"), "3&G")
+
     def test_renderers_and_dimmed_timeout_pips(self):
         event = live_game()
         for renderer in (nfl_v2, nhl_v2):
