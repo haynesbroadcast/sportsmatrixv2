@@ -6,6 +6,8 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
+from .pixel_font import center_text as bitmap_center
+from .nfl_v2 import compact_down
 
 BASE = Path(__file__).resolve().parent.parent
 CACHE = BASE / "assets/cfb"
@@ -24,7 +26,7 @@ def fetch(url):
 
 def font(size):
     return ImageFont.truetype(
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", size)
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", size)
 
 def center(d, x, y, text, size, color=WHITE):
     f = font(size)
@@ -61,7 +63,7 @@ def logo(team):
             return None
     try:
         image = Image.open(path).convert("RGBA")
-        image.thumbnail((38, 34), Image.Resampling.LANCZOS)
+        image.thumbnail((38, 32), Image.Resampling.LANCZOS)
         return image
     except Exception:
         return None
@@ -100,22 +102,22 @@ def render(event):
         team = c["team"]
         r = rank(c)
         if r:
-            center(d, x, 0, f"#{r}", 7, GOLD)
+            bitmap_center(img, x, 0, f"#{r}", GOLD)
 
         icon = logo(team)
         if icon:
-            img.paste(icon, (x-icon.width//2, 7), icon)
+            img.paste(icon, (x-icon.width//2, 8), icon)
         else:
-            center(d, x, 17, team.get("abbreviation", "???")[:4], 8)
+            center(d, x, 17, team.get("abbreviation", "???")[:4], 10)
 
         if state == "in" and possession == str(team.get("id", "")):
-            d.polygon([(x+15, 20), (x+20, 23), (x+15, 26)],
+            d.polygon([(x+20, 25), (x+23, 28), (x+20, 31)],
                       fill=GOLD)
 
         if state in ("in", "post"):
-            center(d, x, 39, str(c.get("score", "0")), 16)
+            center(d, x, 34, str(c.get("score", "0")), 22)
         else:
-            center(d, x, 43, team.get("abbreviation", "???")[:5], 10)
+            center(d, x, 39, team.get("abbreviation", "???")[:5], 11)
 
         if state == "in":
             key = ("awayTimeouts" if c["homeAway"] == "away"
@@ -123,37 +125,38 @@ def render(event):
             remaining = situation.get(key)
             if remaining is not None:
                 remaining = max(0, min(3, int(remaining)))
+                dim_gold = tuple(round(int(GOLD[j:j+2], 16) * .05) for j in (1, 3, 5))
                 for i in range(3):
-                    left = x - 11 + i*8
-                    d.rectangle((left, 59, left+5, 61),
-                                fill=GOLD if i < remaining else DIM)
+                    left = x - 8 + i * 7
+                    d.rectangle((left, 60, left + 1, 61),
+                                fill=GOLD if i < remaining else dim_gold)
 
     if state == "in":
         period = status.get("period", 0)
         clock = status.get("displayClock", "")
         period_text = (f"Q{period}" if period <= 4
                        else f"OT{period-4}")
-        center(d, 64, 3, period_text, 8, GOLD)
-        center(d, 64, 15, clock[:7], 9)
+        bitmap_center(img, 64, 1, period_text, GOLD)
+        center(d, 64, 12, clock[:7], 12)
 
         down = situation.get("shortDownDistanceText")
         if not down and situation.get("down"):
             down = f"{situation['down']} & {situation.get('distance', '?')}"
         if down:
-            center(d, 64, 32, str(down).upper()[:12], 6)
+            bitmap_center(img, 64, 34, compact_down(down), WHITE)
 
         field = situation.get("possessionText")
         if field:
-            center(d, 64, 43, str(field)[:12], 7, GOLD)
+            center(d, 64, 45, str(field)[:8], 9, GOLD)
 
     elif state == "post":
-        center(d, 64, 21, "FINAL", 9, GOLD)
+        bitmap_center(img, 64, 26, "FINAL", GOLD)
     else:
         kickoff = datetime.fromisoformat(
             event["date"].replace("Z", "+00:00")).astimezone(TZ)
-        center(d, 64, 15, kickoff.strftime("%a").upper(), 8, GOLD)
+        bitmap_center(img, 64, 12, kickoff.strftime("%a").upper(), GOLD)
         center(d, 64, 28,
-               kickoff.strftime("%I:%M%p").lstrip("0"), 7)
+               kickoff.strftime("%I:%M%p").lstrip("0"), 9)
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     img.save(OUTPUT)
