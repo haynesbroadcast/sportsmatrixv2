@@ -1,5 +1,6 @@
 """Virtual framebuffer. Never imports or initializes HUB75 hardware."""
 import io
+import tempfile
 from pathlib import Path
 from PIL import Image, ImageDraw, ImageFont
 from .registry import PROFILES
@@ -23,8 +24,33 @@ def output_for(profile, source):
     return image.resize(size, Image.Resampling.LANCZOS)
 
 def render_fixture(league, profile="enhanced_128x64"):
-    if league not in ("nhl", "nfl", "cfb", "golf"):
+    from .registry import supported
+    if league not in supported():
         raise ValueError("No renderer for this league")
+    if league not in ("nhl", "nfl", "cfb", "golf"):
+        from render.other_sports import render
+        from .other_feeds import ESPN_PATHS
+        # Explicitly tagged SAMPLE: useful off-season preview, never fake live data.
+        demo = {
+            "name": "Sample matchup",
+            "date": "2026-11-13T20:00:00Z",
+            "status": {"type": {"state": "in"}, "period": 3,
+                       "displayClock": "05:42"},
+            "competitions": [{"competitors": [
+                {"homeAway": "away", "score": "108" if league in ("nba", "wnba") else "3",
+                 "team": {"abbreviation": "AWY"}},
+                {"homeAway": "home", "score": "112" if league in ("nba", "wnba") else "2",
+                 "team": {"abbreviation": "HME"}}
+            ], "situation": {"outs": 1, "onFirst": True,
+                              "onSecond": False, "onThird": True}}],
+        }
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "sample.png"
+            render(demo, league, path, sample=True)
+            image = output_for(profile, path)
+            stream = io.BytesIO()
+            image.save(stream, format="PNG")
+            return stream.getvalue()
     source = BASE / "output" / {"nhl":"nhl_v2_first.png", "nfl":"nfl_large_logos_v2.png", "cfb":"cfb_v2.png", "golf":"golf_v2.png"}[league]
     if not source.exists():
         source = BASE / "tests" / "fixtures" / source.name
