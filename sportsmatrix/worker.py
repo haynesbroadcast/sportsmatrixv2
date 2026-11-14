@@ -37,9 +37,13 @@ class VirtualWorker:
         if league == "golf":
             from plugins.espn import fetch_golf_leaderboard
             return fetch_golf_leaderboard()
-        raise ValueError("Unsupported league")
+        from .other_feeds import fetch_events
+        return fetch_events(league)
     def render(self, league, event, page=0):
-        if league == "nhl":
+        if event is None:
+            from render.other_sports import render_no_games, OUTPUT
+            render_no_games(league)
+        elif league == "nhl":
             from render.nhl_v2 import render, OUTPUT
             render(event)
         elif league == "nfl":
@@ -48,10 +52,13 @@ class VirtualWorker:
         elif league == "cfb":
             from render.cfb_v2 import render, OUTPUT
             render(event)
-        else:
+        elif league == "golf":
             from render.golf import render_golf
             OUTPUT = BASE / "output" / "golf_v2.png"
             render_golf(event, {}, OUTPUT, page=page)
+        else:
+            from render.other_sports import render, OUTPUT
+            render(event, league)
         from .preview import output_for
         profile = self.store.read().get("profile", "enhanced_128x64")
         image = output_for(profile, OUTPUT)
@@ -77,11 +84,24 @@ class VirtualWorker:
         if self.last_fetch == 0 or now-self.last_fetch >= interval:
             try:
                 fetched = self.fetch(league)
-                if fetched: self.events = fetched
+                if fetched or league not in ("nhl", "nfl", "cfb", "golf"):
+                    self.events = fetched
             except Exception:
                 LOG.exception("Provider fetch failed; retaining last data")
             self.last_fetch = now
-        if not self.events: return None
+        if not self.events:
+            if league in ("nhl", "nfl", "cfb", "golf") or settings.get("power", "on") == "off":
+                return None
+            # Do not leave the last sport's pixels on screen during an off-season.
+            profile = self.render(league, None)
+            payload = {"league": league, "event_id": "no_games",
+                       "profile": profile, "updated_at": time.time(),
+                       "mode": "live_virtual"}
+            STATUS.parent.mkdir(parents=True, exist_ok=True)
+            temp = STATUS.with_suffix(".tmp")
+            temp.write_text(json.dumps(payload))
+            os.replace(temp, STATUS)
+            return payload
         if league == "golf":
             board = self.events
             pages=max(1,min(4,(len(board.get("players",[]))+3)//4))

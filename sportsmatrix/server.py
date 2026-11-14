@@ -97,7 +97,11 @@ def create_app(config_path=None):
     @app.get("/api/v1/teams/<league>")
     def teams(league):
         """Full-name provider directory. Never guess team IDs from abbreviations."""
-        paths = {"nfl": "football/nfl", "cfb": "football/college-football", "nhl": "hockey/nhl"}
+        paths = {"nfl": "football/nfl", "cfb": "football/college-football",
+                 "nhl": "hockey/nhl", "nba": "basketball/nba",
+                 "wnba": "basketball/wnba", "mlb": "baseball/mlb",
+                 "mls": "soccer/usa.1", "nwsl": "soccer/usa.nwsl",
+                 "epl": "soccer/eng.1", "pll": "lacrosse/pll"}
         if league not in paths:
             return jsonify(teams=[], error="Team directory not available for this league"), 404
         try:

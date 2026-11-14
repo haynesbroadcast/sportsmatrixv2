@@ -15,15 +15,15 @@ class CoreTests(unittest.TestCase):
             self.assertEqual(store.update({'brightness':60})['brightness'],60)
             self.assertEqual(store.read()['brightness'],60)
             with self.assertRaises(ValueError):store.update({'brightness':101})
-            with self.assertRaises(ValueError):store.update({'league':'wnba'})
+            with self.assertRaises(ValueError):store.update({'league':'invalid'})
             with self.assertRaises(ValueError):store.update({'sport_preferences':{'nhl':{'mode':'invalid'}}})
             self.assertEqual(store.read()['brightness'],60)
     def test_registry(self):
         self.assertIn('nhl',supported())
-        self.assertNotIn('wnba',supported())
+        self.assertIn('wnba',supported())
         self.assertIn('wnba',LEAGUES)
     def test_previews(self):
-        for league in ('nhl','nfl','cfb','golf'):
+        for league in supported():
             for profile,expected in [('compact_64x32',(64,32)),('enhanced_128x64',(128,64))]:
                 png=render_fixture(league,profile)
                 self.assertEqual(Image.open(io.BytesIO(png)).size,expected)

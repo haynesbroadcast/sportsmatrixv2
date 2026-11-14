@@ -16,14 +16,14 @@ LEAGUES = {
         League("nfl", "NFL", "football", "nfl"),
         League("cfb", "College Football", "football", "cfb"),
         League("golf", "PGA Golf", "golf", "golf", "golfer"),
-        League("nba", "NBA", "basketball", "basketball", enabled=False),
-        League("wnba", "WNBA", "basketball", "basketball", enabled=False),
-        League("nwsl", "NWSL", "soccer", "soccer", enabled=False),
-        League("epl", "Premier League", "soccer", "soccer", enabled=False),
-        League("mls", "MLS", "soccer", "soccer", enabled=False),
-        League("pwhl", "PWHL", "hockey", "hockey", enabled=False),
-        League("pll", "PLL Lacrosse", "lacrosse", "lacrosse", enabled=False),
-        League("mlb", "MLB", "baseball", "baseball", enabled=False),
+        League("nba", "NBA", "basketball", "basketball", enabled=True),
+        League("wnba", "WNBA", "basketball", "basketball", enabled=True),
+        League("nwsl", "NWSL", "soccer", "soccer", enabled=True),
+        League("epl", "Premier League", "soccer", "soccer", enabled=True),
+        League("mls", "MLS", "soccer", "soccer", enabled=True),
+        League("pwhl", "PWHL", "hockey", "hockey", enabled=True),
+        League("pll", "PLL Lacrosse", "lacrosse", "lacrosse", enabled=True),
+        League("mlb", "MLB", "baseball", "baseball", enabled=True),
     )
 }
 PROFILES = {"compact_64x32": (64, 32), "enhanced_128x64": (128, 64)}

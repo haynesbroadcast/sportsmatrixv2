@@ -42,7 +42,15 @@ const fallbackLeagues=[
 {key:'nhl',label:'NHL',enabled:true,favorite_kind:'team'},
 {key:'nfl',label:'NFL',enabled:true,favorite_kind:'team'},
 {key:'cfb',label:'College Football',enabled:true,favorite_kind:'team'},
-{key:'golf',label:'PGA Golf',enabled:true,favorite_kind:'golfer'}];
+{key:'golf',label:'PGA Golf',enabled:true,favorite_kind:'golfer'},
+{key:'nba',label:'NBA',enabled:true,favorite_kind:'team'},
+{key:'wnba',label:'WNBA',enabled:true,favorite_kind:'team'},
+{key:'mlb',label:'MLB',enabled:true,favorite_kind:'team'},
+{key:'mls',label:'MLS',enabled:true,favorite_kind:'team'},
+{key:'nwsl',label:'NWSL',enabled:true,favorite_kind:'team'},
+{key:'epl',label:'Premier League',enabled:true,favorite_kind:'team'},
+{key:'pwhl',label:'PWHL',enabled:true,favorite_kind:'team'},
+{key:'pll',label:'PLL Lacrosse',enabled:true,favorite_kind:'team'}];
 async function apiJSON(url){
   const r=await fetch(url,{cache:'no-store'});
   if(!r.ok)throw Error(url+' returned HTTP '+r.status);
