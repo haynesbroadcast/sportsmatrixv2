@@ -61,7 +61,7 @@ def logo(team):
             return None
     try:
         image = Image.open(path).convert("RGBA")
-        image.thumbnail((30, 30), Image.Resampling.LANCZOS)
+        image.thumbnail((38, 34), Image.Resampling.LANCZOS)
         return image
     except Exception:
         return None
@@ -94,7 +94,7 @@ def render(event):
     d = ImageDraw.Draw(img)
     possession = str(situation.get("possession", ""))
 
-    for c, x in ((away, 23), (home, 105)):
+    for c, x in ((away, 26), (home, 102)):
         team = c["team"]
         r = rank(c)
         if r:
@@ -111,9 +111,9 @@ def render(event):
                       fill=GOLD)
 
         if state in ("in", "post"):
-            center(d, x, 36, str(c.get("score", "0")), 12)
+            center(d, x, 39, str(c.get("score", "0")), 16)
         else:
-            center(d, x, 38, team.get("abbreviation", "???")[:5], 8)
+            center(d, x, 43, team.get("abbreviation", "???")[:5], 10)
 
         if state == "in":
             key = ("awayTimeouts" if c["homeAway"] == "away"
@@ -123,7 +123,7 @@ def render(event):
                 remaining = max(0, min(3, int(remaining)))
                 for i in range(3):
                     left = x - 11 + i*8
-                    d.rectangle((left, 53, left+5, 55),
+                    d.rectangle((left, 59, left+5, 61),
                                 fill=GOLD if i < remaining else DIM)
 
     if state == "in":
