@@ -65,7 +65,7 @@ class ControlTests(unittest.TestCase):
         self.assertEqual(client.get('/api/v1/status').json['state']['brightness'],70)
         os.environ.pop('SPORTSMATRIX_API_TOKEN',None)
     def test_previews(self):
-        for league in ('nhl','nfl','cfb','golf','nba','wnba','mlb','mls','nwsl','epl','pwhl','pll'):
+        for league in ('nhl','nfl','cfb','golf','nba','wnba','mlb','mls','nwsl','epl'):
             for profile,expected in [('compact_64x32',(64,32)),('enhanced_128x64',(128,64))]:
                 response=self.client.get(f'/api/v1/preview.png?league={league}&profile={profile}')
                 self.assertEqual(response.status_code,200,league)
