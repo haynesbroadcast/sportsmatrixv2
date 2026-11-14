@@ -1,4 +1,4 @@
-"""Native 128x64 renderers for NBA, WNBA, MLB, MLS, NWSL, EPL, PWHL and PLL.
+"""Native 128x64 renderers for NBA, WNBA, MLB, MLS, NWSL and EPL.
 
 Use clear pixel text, black background and centered two-team compositions.
 The center information differs by sport. Unknown statistics are omitted,
@@ -23,7 +23,6 @@ SPORT = {
     "nba": "basketball", "wnba": "basketball",
     "mlb": "baseball",
     "mls": "soccer", "nwsl": "soccer", "epl": "soccer",
-    "pwhl": "hockey", "pll": "lacrosse",
 }
 
 
@@ -212,7 +211,7 @@ def render_no_games(league, output_path=None):
     draw = ImageDraw.Draw(image)
     draw.fontmode = "1"
     label = {"epl": "EPL", "nwsl": "NWSL", "mls": "MLS",
-             "pwhl": "PWHL", "pll": "PLL", "nba": "NBA",
+             "nba": "NBA",
              "wnba": "WNBA", "mlb": "MLB"}[league]
     bitmap_center(image, 64, 4, label, GOLD)
     centered(draw, 64, 24, "NO GAMES", 13, WHITE, 110)

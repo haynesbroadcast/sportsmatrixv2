@@ -21,8 +21,6 @@ LEAGUES = {
         League("nwsl", "NWSL", "soccer", "soccer", enabled=True),
         League("epl", "Premier League", "soccer", "soccer", enabled=True),
         League("mls", "MLS", "soccer", "soccer", enabled=True),
-        League("pwhl", "PWHL", "hockey", "hockey", enabled=True),
-        League("pll", "PLL Lacrosse", "lacrosse", "lacrosse", enabled=True),
         League("mlb", "MLB", "baseball", "baseball", enabled=True),
     )
 }

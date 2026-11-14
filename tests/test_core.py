@@ -21,6 +21,8 @@ class CoreTests(unittest.TestCase):
     def test_registry(self):
         self.assertIn('nhl',supported())
         self.assertIn('wnba',supported())
+        self.assertNotIn('pll',supported())
+        self.assertNotIn('pwhl',supported())
         self.assertIn('wnba',LEAGUES)
     def test_previews(self):
         for league in supported():

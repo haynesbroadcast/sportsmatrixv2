@@ -71,6 +71,35 @@ def create_app(config_path=None):
             return jsonify(ok=False, error=str(exc)), 400
         return jsonify(ok=True, state=state)
 
+    @app.get("/api/v1/ha/state")
+    def ha_state():
+        """Compact Home Assistant polling endpoint; no auth on local network."""
+        state = store.read()
+        return jsonify(
+            league=state.get("league", "nhl"),
+            brightness=state.get("brightness", 20),
+            power=state.get("power", "on"),
+            available_leagues=list(supported()),
+            version=__version__,
+        )
+
+    @app.post("/api/v1/ha/control")
+    def ha_control():
+        """Single JSON endpoint for HA REST commands.
+
+        Supported keys: league, brightness, power. Accepts independent or
+        combined changes; uses the same validation as Control Room.
+        """
+        data = request.get_json(silent=True)
+        if not isinstance(data, dict) or not data or set(data) - {"league", "brightness", "power"}:
+            return jsonify(ok=False, error="Expected league, brightness and/or power"), 400
+        try:
+            state = store.update(data)
+        except ValueError as exc:
+            return jsonify(ok=False, error=str(exc)), 400
+        return jsonify(ok=True, league=state["league"],
+                       brightness=state["brightness"], power=state["power"])
+
     @app.get("/api/v1/preview.png")
     def preview():
         state = store.read()
@@ -101,7 +130,7 @@ def create_app(config_path=None):
                  "nhl": "hockey/nhl", "nba": "basketball/nba",
                  "wnba": "basketball/wnba", "mlb": "baseball/mlb",
                  "mls": "soccer/usa.1", "nwsl": "soccer/usa.nwsl",
-                 "epl": "soccer/eng.1", "pll": "lacrosse/pll"}
+                 "epl": "soccer/eng.1"}
         if league not in paths:
             return jsonify(teams=[], error="Team directory not available for this league"), 404
         try:
