@@ -5,7 +5,7 @@ from tempfile import TemporaryDirectory
 
 from PIL import Image
 from render.pixel_font import GLYPHS, text_width, draw_text, center_text
-from render import nfl_v2, nhl_v2
+from render import nfl_v2, nhl_v2, cfb_v2
 
 
 def live_game():
@@ -48,7 +48,7 @@ class BitmapTests(unittest.TestCase):
 
     def test_renderers_and_dimmed_timeout_pips(self):
         event = live_game()
-        for renderer in (nfl_v2, nhl_v2):
+        for renderer in (nfl_v2, nhl_v2, cfb_v2):
             with self.subTest(renderer=renderer.__name__), TemporaryDirectory() as root:
                 output = Path(root) / "frame.png"
                 with patch.object(renderer, "OUTPUT", output), patch.object(renderer, "logo", return_value=None):
@@ -56,7 +56,7 @@ class BitmapTests(unittest.TestCase):
                 with Image.open(output) as img:
                     self.assertEqual(img.size, (128, 64))
                     self.assertEqual(img.getpixel((0, 63)), (0, 0, 0))
-                    if renderer is nfl_v2:
+                    if renderer in (nfl_v2, cfb_v2):
                         self.assertEqual(img.getpixel((18, 60)), (233, 197, 108))
                         self.assertEqual(img.getpixel((32, 60)), (12, 10, 5))
                         self.assertEqual(img.getpixel((94, 60)), (233, 197, 108))
