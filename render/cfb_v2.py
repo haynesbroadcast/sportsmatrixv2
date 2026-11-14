@@ -116,9 +116,9 @@ def render(event):
                       fill=GOLD)
 
         if state in ("in", "post"):
-            center(d, x, 34, str(c.get("score", "0")), 22)
+            center(d, x, 35, str(c.get("score", "0")), 28)
         else:
-            center(d, x, 39, team.get("abbreviation", "???")[:5], 11)
+            center(d, x, 41, team.get("abbreviation", "???")[:5], 13)
 
         if state == "in":
             key = ("awayTimeouts" if c["homeAway"] == "away"
@@ -140,11 +140,11 @@ def render(event):
         if not down and situation.get("down"):
             down = f"{situation['down']} & {situation.get('distance', '?')}"
         if down:
-            bitmap_center(img, 64, 34, compact_down(down), WHITE)
+            bitmap_center(img, 64, 37, compact_down(down), WHITE)
 
         field = situation.get("possessionText")
         if field:
-            center(d, 64, 45, str(field)[:8], 9, GOLD)
+            center(d, 64, 51, str(field)[:8], 9, GOLD)
 
     elif state == "post":
         bitmap_center(img, 64, 26, "FINAL", GOLD)
