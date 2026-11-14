@@ -1,5 +1,6 @@
 import io
 import json
+import re
 import sys
 import urllib.request
 from datetime import datetime
@@ -32,6 +33,19 @@ def center(d, x, y, text, size, color=WHITE):
     box = d.textbbox((0, 0), str(text), font=f)
     d.text((int(x-(box[2]-box[0])/2), y), str(text),
            font=f, fill=color)
+
+def compact_down(value):
+    """Keep full down/distance information within the 5x7 center column.
+
+    Examples: '2nd & 8' -> '2&8'; '3rd & Goal' -> '3&G'.
+    """
+    text = str(value).upper().strip()
+    match = re.search(r"([1-4])(?:ST|ND|RD|TH)?\s*&\s*(GOAL|\d+)", text)
+    if match:
+        distance = "G" if match.group(2) == "GOAL" else match.group(2)
+        return f"{match.group(1)}&{distance}"[:5]
+    return text[:5]
+
 
 def rank(c):
     return None
@@ -153,7 +167,7 @@ def render(event):
             )
 
         if down:
-            bitmap_center(img, 64, 34, str(down).upper()[:5], WHITE)
+            bitmap_center(img, 64, 34, compact_down(down), WHITE)
 
         field = situation.get("possessionText")
         if field:
