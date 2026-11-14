@@ -24,7 +24,7 @@ def fetch(url):
 
 def font(size):
     return ImageFont.truetype(
-        "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", size)
+        "/usr/share/fonts/truetype/liberation2/LiberationSans-Bold.ttf", size)
 
 def center(d, x, y, text, size, color=WHITE):
     f = font(size)
@@ -154,7 +154,6 @@ def render(event):
         center(d, 64, 15, kickoff.strftime("%a").upper(), 8, GOLD)
         center(d, 64, 28,
                kickoff.strftime("%I:%M%p").lstrip("0"), 7)
-        center(d, 64, 43, "PT", 7, DIM)
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     img.save(OUTPUT)
