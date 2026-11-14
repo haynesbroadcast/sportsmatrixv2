@@ -20,6 +20,27 @@ class ControlTests(unittest.TestCase):
         by_key = {x['key']: x for x in response.json['leagues']}
         self.assertTrue(by_key['nhl']['enabled'])
         self.assertFalse(by_key['wnba']['enabled'])
+    def test_control_room_connectivity_and_actions(self):
+        page=self.client.get('/')
+        self.assertEqual(page.status_code, 200)
+        html=page.get_data(as_text=True)
+        # A failed status request must not hide all sport selectors.
+        self.assertIn('Promise.allSettled', html)
+        self.assertIn('fallbackLeagues', html)
+        self.assertIn('Cannot load scoreboard settings:', html)
+        self.assertIn('brightness', html)
+        self.assertIn('hardwareStatus', html)
+        self.assertIn('PREVIEW', html)
+        self.assertIn('data-profile="compact_64x32" disabled', html)
+        s=self.client.get('/api/v1/status')
+        self.assertEqual(s.status_code, 200)
+        self.assertEqual(s.json['version'], '0.06')
+        self.assertIn('state', s.json)
+        self.assertIn('hardware_active', s.json)
+        l=self.client.get('/api/v1/leagues')
+        self.assertEqual(l.status_code, 200)
+        self.assertTrue(any(x['key']=='nhl' for x in l.json['leagues']))
+
     def test_auth(self):
         self.assertEqual(self.client.put('/api/v1/settings', json={'league':'nhl'}).status_code, 401)
     def test_health(self): self.assertTrue(self.client.get('/healthz').json['ok'])
