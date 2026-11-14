@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
+from .pixel_font import center_text as bitmap_center
 
 BASE = Path(__file__).resolve().parent.parent
 CACHE = BASE / "assets/nhl"
@@ -24,7 +25,7 @@ def fetch(url):
 
 def font(size):
     return ImageFont.truetype(
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", size
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", size
     )
 
 def center(d, x, y, value, size, color=WHITE):
@@ -57,7 +58,7 @@ def logo(team):
         ).getbbox()
         if bbox:
             image = image.crop(bbox)
-        image.thumbnail((42, 38), Image.Resampling.LANCZOS)
+        image.thumbnail((42, 35), Image.Resampling.LANCZOS)
         return image
     except Exception:
         return None
@@ -93,14 +94,14 @@ def render(event):
         icon = logo(c["team"])
         if icon:
             # Make full use of the team columns while preserving score space.
-            img.paste(icon, (x-icon.width//2, 2), icon)
+            img.paste(icon, (x-icon.width//2, 1), icon)
         else:
             center(d, x, 14, c["team"].get("abbreviation", "???"), 10)
 
         if state in ("in", "post"):
-            center(d, x, 39, c.get("score", "0"), 18)
+            center(d, x, 34, c.get("score", "0"), 22)
         else:
-            center(d, x, 43, c["team"].get("abbreviation", "???"), 10)
+            center(d, x, 39, c["team"].get("abbreviation", "???"), 11)
 
     if state == "in":
         period = int(status.get("period") or 0)
@@ -109,19 +110,19 @@ def render(event):
             f"P{period}" if period <= 3
             else "OT" if period == 4 else "SO"
         )
-        center(d, 64, 0, period_text, 9, GOLD)
-        center(d, 64, 13, clock[:7], 11)
+        bitmap_center(img, 64, 1, period_text, GOLD)
+        center(d, 64, 12, clock[:7], 12)
 
         away_shots = shots(away)
         home_shots = shots(home)
         if away_shots is not None and home_shots is not None:
-            center(d, 64, 33, "SHOTS", 6, GOLD)
-            center(d, 64, 43, f"{away_shots}-{home_shots}", 8)
+            bitmap_center(img, 64, 33, "SHOTS", GOLD)
+            center(d, 64, 42, f"{away_shots}-{home_shots}", 10)
 
         # Only show a power-play indicator when ESPN provides it.
         pp = situation.get("powerPlay") or situation.get("powerplay")
         if pp:
-            center(d, 64, 55, "POWER PLAY", 6, GOLD)
+            bitmap_center(img, 64, 55, "PP", GOLD)
 
     elif state == "post":
         detail = status["type"].get("shortDetail", "FINAL")
@@ -131,15 +132,15 @@ def render(event):
             label = "FINAL OT"
         else:
             label = "FINAL"
-        center(d, 64, 24, label, 8, GOLD)
+        bitmap_center(img, 64, 26, label, GOLD)
 
     else:
         kickoff = datetime.fromisoformat(
             event["date"].replace("Z", "+00:00")
         ).astimezone(TZ)
-        center(d, 64, 12, kickoff.strftime("%a").upper(), 9, GOLD)
+        bitmap_center(img, 64, 12, kickoff.strftime("%a").upper(), GOLD)
         center(d, 64, 28,
-               kickoff.strftime("%I:%M%p").lstrip("0"), 8)
+               kickoff.strftime("%I:%M%p").lstrip("0"), 9)
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
     img.save(OUTPUT)

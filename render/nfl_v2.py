@@ -1,11 +1,13 @@
 import io
 import json
+import re
 import sys
 import urllib.request
 from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
+from .pixel_font import center_text as bitmap_center
 
 BASE = Path(__file__).resolve().parent.parent
 CACHE = BASE / "assets/nfl"
@@ -24,13 +26,26 @@ def fetch(url):
 
 def font(size):
     return ImageFont.truetype(
-        "/usr/share/fonts/truetype/liberation/LiberationSans-Bold.ttf", size)
+        "/usr/share/fonts/truetype/dejavu/DejaVuSansMono-Bold.ttf", size)
 
 def center(d, x, y, text, size, color=WHITE):
     f = font(size)
     box = d.textbbox((0, 0), str(text), font=f)
     d.text((int(x-(box[2]-box[0])/2), y), str(text),
            font=f, fill=color)
+
+def compact_down(value):
+    """Keep full down/distance information within the 5x7 center column.
+
+    Examples: '2nd & 8' -> '2&8'; '3rd & Goal' -> '3&G'.
+    """
+    text = str(value).upper().strip()
+    match = re.search(r"([1-4])(?:ST|ND|RD|TH)?\s*&\s*(GOAL|\d+)", text)
+    if match:
+        distance = "G" if match.group(2) == "GOAL" else match.group(2)
+        return f"{match.group(1)}&{distance}"[:5]
+    return text[:5]
+
 
 def rank(c):
     return None
@@ -103,23 +118,19 @@ def render(event):
         icon = logo(team)
 
         if icon:
-            icon.thumbnail((36, 31), Image.Resampling.LANCZOS)
-            img.paste(icon, (x - icon.width // 2, 3), icon)
+            icon.thumbnail((38, 32), Image.Resampling.LANCZOS)
+            img.paste(icon, (x - icon.width // 2, 1), icon)
         else:
-            center(d, x, 13, team.get("abbreviation", "???")[:4], 9)
+            center(d, x, 13, team.get("abbreviation", "???")[:4], 10)
 
         if state == "in" and possession == str(team.get("id", "")):
-            # Compact football icon just below the logo.
-            d.ellipse((x - 5, 30, x + 5, 35), fill=GOLD)
-            d.line((x - 2, 32, x + 2, 32),
-                   fill="#000000", width=1)
-            d.line((x, 31, x, 34),
-                   fill="#000000", width=1)
+            # One-pixel possession marker; no space wasted below the logo.
+            d.polygon([(x+20, 25), (x+23, 28), (x+20, 31)], fill=GOLD)
 
         if state in ("in", "post"):
-            center(d, x, 39, str(c.get("score", "0")), 18)
+            center(d, x, 34, str(c.get("score", "0")), 22)
         else:
-            center(d, x, 43, team.get("abbreviation", "???")[:5], 10)
+            center(d, x, 38, team.get("abbreviation", "???")[:5], 11)
 
         if state == "in":
             key = (
@@ -130,11 +141,11 @@ def render(event):
             if remaining is not None:
                 remaining = max(0, min(3, int(remaining)))
                 for i in range(3):
-                    left = x - 11 + i * 8
-                    d.rectangle(
-                        (left, 59, left + 5, 61),
-                        fill=GOLD if i < remaining else DIM
-                    )
+                    # Tiny 2x2 markers; spent timeouts remain at ~5% LED color.
+                    left = x - 8 + i * 7
+                    dim_gold = tuple(round(int(GOLD[j:j+2], 16) * .05) for j in (1, 3, 5))
+                    d.rectangle((left, 60, left + 1, 61),
+                                fill=GOLD if i < remaining else dim_gold)
 
     if state == "in":
         period = int(status.get("period") or 0)
@@ -145,8 +156,8 @@ def render(event):
         else:
             period_text = f"OT{period - 4}"
 
-        center(d, 64, 0, period_text, 9, GOLD)
-        center(d, 64, 13, clock[:7], 11)
+        bitmap_center(img, 64, 1, period_text, GOLD)
+        center(d, 64, 12, clock[:7], 12)
 
         down = situation.get("shortDownDistanceText")
         if not down and situation.get("down"):
@@ -156,24 +167,24 @@ def render(event):
             )
 
         if down:
-            center(d, 64, 34, str(down).upper()[:12], 7)
+            bitmap_center(img, 64, 34, compact_down(down), WHITE)
 
         field = situation.get("possessionText")
         if field:
-            center(d, 64, 47, str(field)[:12], 8, GOLD)
+            center(d, 64, 45, str(field)[:8], 9, GOLD)
 
     elif state == "post":
-        center(d, 64, 24, "FINAL", 10, GOLD)
+        bitmap_center(img, 64, 26, "FINAL", GOLD)
 
     else:
         kickoff = datetime.fromisoformat(
             event["date"].replace("Z", "+00:00")
         ).astimezone(TZ)
 
-        center(d, 64, 12, kickoff.strftime("%a").upper(), 9, GOLD)
+        bitmap_center(img, 64, 12, kickoff.strftime("%a").upper(), GOLD)
         center(
             d, 64, 28,
-            kickoff.strftime("%I:%M%p").lstrip("0"), 8
+            kickoff.strftime("%I:%M%p").lstrip("0"), 9
         )
 
     OUTPUT.parent.mkdir(parents=True, exist_ok=True)
