@@ -42,6 +42,8 @@ def render_golf(board, settings, output_path, page=0):
 
     img = Image.new("RGB", (WIDTH, HEIGHT), bg)
     d = ImageDraw.Draw(img)
+    # HUB75 panel: keep text glyph edges pixel-sharp, not grayscale-antialiased.
+    d.fontmode = "1"
 
     title_font = _font(8)
     row_font = _font(8)
