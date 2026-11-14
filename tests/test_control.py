@@ -34,7 +34,7 @@ class ControlTests(unittest.TestCase):
         self.assertIn('data-profile="compact_64x32" disabled', html)
         s=self.client.get('/api/v1/status')
         self.assertEqual(s.status_code, 200)
-        self.assertEqual(s.json['version'], '0.12')
+        self.assertEqual(s.json['version'], '0.13')
         self.assertIn('state', s.json)
         self.assertIn('hardware_active', s.json)
         l=self.client.get('/api/v1/leagues')

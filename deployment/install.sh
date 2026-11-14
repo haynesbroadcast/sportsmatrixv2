@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# SportsMatrix v0.12 installation: isolated V2 deployment, no changes to V1.
+# SportsMatrix v0.13 installation: isolated V2 deployment, no changes to V1.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
@@ -14,7 +14,7 @@ esac
 if [[ "$EUID" -eq 0 ]]; then echo 'Run as the scoreboard user, not sudo/root.' >&2; exit 1; fi
 command -v sudo >/dev/null || { echo 'sudo is required' >&2; exit 1; }
 command -v git >/dev/null || { echo 'git is required' >&2; exit 1; }
-echo 'Installing SportsMatrix v0.12 prerequisites...'
+echo 'Installing SportsMatrix v0.13 prerequisites...'
 sudo apt-get update
 sudo apt-get install -y python3-venv python3-dev build-essential cmake git pkg-config fonts-liberation fonts-dejavu-core
 if [[ ! -x .venv/bin/python ]]; then python3 -m venv .venv; fi

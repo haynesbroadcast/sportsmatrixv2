@@ -172,6 +172,9 @@ def render(event, league, output_path=None, *, sample=False):
     if league not in SPORT:
         raise ValueError("Unsupported sport renderer: " + str(league))
     output_path = Path(output_path or OUTPUT)
+    if league == "mlb":
+        from render.mlb_board import render_mlb
+        return render_mlb(event, output_path, sample=sample)
     sport = SPORT[league]
     comp, away, home = competitors(event)
     state = event.get("status", {}).get("type", {}).get("state", "pre")
