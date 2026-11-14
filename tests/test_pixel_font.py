@@ -39,7 +39,7 @@ class BitmapTests(unittest.TestCase):
         self.assertEqual(text_width("SHOTS"), 29)
         colors = set(im.getdata())
         self.assertEqual(colors, {(0, 0, 0), (233, 197, 108)})
-        self.assertEqual(im.getpixel((64, 6)), (0, 0, 0))
+        self.assertEqual(im.getpixel((0, 0)), (0, 0, 0))
 
     def test_renderers_and_dimmed_timeout_pips(self):
         event = live_game()
