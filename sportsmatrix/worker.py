@@ -112,6 +112,9 @@ class VirtualWorker:
             ident=str(self.page)
         else:
             candidates=choose(self.events,prefs)
+            if league == "nfl":
+                from .selection import nfl_broadcast_window
+                candidates=nfl_broadcast_window(candidates)
             if not candidates:return None
             ids=[str(e.get("id")) for e in candidates]
             if self.current_id not in ids:
