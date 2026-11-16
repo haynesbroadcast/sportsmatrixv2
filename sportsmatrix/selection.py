@@ -26,3 +26,50 @@ def duration(event, prefs):
     if prefs.get("mode") == "prefer" and is_favorite(event, prefs.get("favorite_team", "")):
         return prefs.get("favorite_seconds", 90)
     return prefs.get("other_seconds", 30)
+
+
+def nfl_broadcast_window(events, now=None):
+    """Only rotate the current NFL broadcast block, not the whole week.
+
+    Live games win. Between windows, show the next kickoff group. After
+    the day's last game, retain today's finals instead of next Sunday.
+    """
+    from datetime import timedelta
+    from zoneinfo import ZoneInfo
+
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    local_day = now.astimezone(ZoneInfo("America/Los_Angeles")).date()
+
+    def start(event):
+        try:
+            return datetime.fromisoformat(event["date"].replace("Z", "+00:00"))
+        except (KeyError, ValueError, TypeError):
+            return None
+
+    def state(event):
+        return event.get("status", {}).get("type", {}).get("state")
+
+    live = [e for e in events if state(e) == "in"]
+    if live:
+        return live
+
+    upcoming = sorted(
+        (e for e in events if state(e) == "pre" and start(e) and start(e) >= now),
+        key=lambda e: start(e),
+    )
+    finals = [e for e in events if state(e) == "post" and start(e)
+              and start(e).astimezone(ZoneInfo("America/Los_Angeles")).date() == local_day]
+    # After the last Sunday window, prefer today's results to next week's games.
+    if finals and (not upcoming or
+                   start(upcoming[0]).astimezone(ZoneInfo("America/Los_Angeles")).date() > local_day):
+        return finals
+    if upcoming:
+        first = start(upcoming[0])
+        # Games with kickoffs within 45 minutes belong to the same block.
+        return [e for e in upcoming if start(e) <= first + timedelta(minutes=45)]
+
+    finals = [e for e in events if state(e) == "post" and start(e)
+              and start(e).astimezone(ZoneInfo("America/Los_Angeles")).date() == local_day]
+    return finals or list(events)

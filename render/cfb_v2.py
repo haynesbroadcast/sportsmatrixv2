@@ -64,6 +64,13 @@ def logo(team):
             return None
     try:
         image = Image.open(path).convert("RGBA")
+        # ESPN logos have wildly different transparent margins; normalize
+        # the visible artwork before fitting the team logo slot.
+        alpha = image.getchannel("A")
+        bbox = alpha.point(lambda a: 255 if a > 12 else 0).getbbox()
+        if not bbox:
+            return None
+        image = image.crop(bbox)
         image.thumbnail((38, 32), Image.Resampling.LANCZOS)
         return image
     except Exception:
