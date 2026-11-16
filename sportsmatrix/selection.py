@@ -59,6 +59,12 @@ def nfl_broadcast_window(events, now=None):
         (e for e in events if state(e) == "pre" and start(e) and start(e) >= now),
         key=lambda e: start(e),
     )
+    finals = [e for e in events if state(e) == "post" and start(e)
+              and start(e).astimezone(ZoneInfo("America/Los_Angeles")).date() == local_day]
+    # After the last Sunday window, prefer today's results to next week's games.
+    if finals and (not upcoming or
+                   start(upcoming[0]).astimezone(ZoneInfo("America/Los_Angeles")).date() > local_day):
+        return finals
     if upcoming:
         first = start(upcoming[0])
         # Games with kickoffs within 45 minutes belong to the same block.
