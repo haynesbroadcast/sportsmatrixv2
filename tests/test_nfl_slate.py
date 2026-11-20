@@ -1,5 +1,6 @@
 """Regression tests for native 128x64 NFL slate pages and alpha-aware artwork."""
 import json
+from datetime import datetime, timedelta, timezone
 import tempfile
 import unittest
 from pathlib import Path
@@ -9,7 +10,7 @@ from render.nfl_slate import prepare_logo, render_slate
 
 
 def event(i, state="pre"):
-    return {"id": str(i), "date": "2026-11-22T18:00:00Z",
+    return {"id": str(i), "date": (datetime.now(timezone.utc) + timedelta(days=2)).isoformat(),
             "status": {"type": {"state": state}},
             "competitions": [{"competitors": [
                 {"homeAway": "away", "team": {
