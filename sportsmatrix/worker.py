@@ -24,6 +24,7 @@ class VirtualWorker:
         self.last_rotate = 0
         self.page = 0
         self.last_render = None
+        self.slate_signature = None
     def fetch(self, league):
         if league == "nhl":
             from nhl_runtime import fetch_events
@@ -46,6 +47,9 @@ class VirtualWorker:
         elif league == "nhl":
             from render.nhl_v2 import render, OUTPUT
             render(event)
+        elif league == "nfl" and isinstance(event, list):
+            from render.nfl_slate import render_slate, OUTPUT
+            render_slate(event, page=page)
         elif league == "nfl":
             from render.nfl_v2 import render, OUTPUT
             render(event)
@@ -78,6 +82,7 @@ class VirtualWorker:
         prefs = settings.get("sport_preferences", {}).get(league, {})
         if league != self.league:
             self.league, self.events, self.current_id, self.last_fetch, self.last_rotate = league, [], None, 0, 0
+            self.page, self.slate_signature = 0, None
         # Re-fetch all games every five minutes; update at 15 seconds while live.
         live = league == "golf" or (isinstance(self.events, list) and any(e.get("status",{}).get("type",{}).get("state")=="in" for e in self.events))
         interval = 15 if live else 300
@@ -116,15 +121,35 @@ class VirtualWorker:
                 from .selection import nfl_broadcast_window
                 candidates=nfl_broadcast_window(candidates)
             if not candidates:return None
-            ids=[str(e.get("id")) for e in candidates]
-            if self.current_id not in ids:
-                self.current_id=ids[0];self.last_rotate=now
-            current=candidates[ids.index(self.current_id)]
-            if now-self.last_rotate>=duration(current,prefs):
-                self.current_id=ids[(ids.index(self.current_id)+1)%len(ids)]
-                self.last_rotate=now
-            event=candidates[ids.index(self.current_id)]
-            ident=self.current_id
+            # Pregame windows show three matchups per 128x64 page. Keep the
+            # existing full-screen renderer for live games, finals and single
+            # matchups, so scores and game situations are never hidden.
+            slate = (league == "nfl" and len(candidates) > 1 and
+                     all(e.get("status", {}).get("type", {}).get("state") == "pre"
+                         for e in candidates))
+            if slate:
+                from render.nfl_slate import PER_PAGE, PAGE_SECONDS
+                signature = tuple(str(e.get("id")) for e in candidates)
+                pages = (len(candidates) + PER_PAGE - 1) // PER_PAGE
+                if signature != self.slate_signature:
+                    self.slate_signature = signature
+                    self.page, self.last_rotate = 0, now
+                elif now - self.last_rotate >= PAGE_SECONDS:
+                    self.page = (self.page + 1) % pages
+                    self.last_rotate = now
+                event = candidates
+                ident = f"slate-{self.page + 1}-of-{pages}"
+            else:
+                self.slate_signature = None
+                ids=[str(e.get("id")) for e in candidates]
+                if self.current_id not in ids:
+                    self.current_id=ids[0];self.last_rotate=now
+                current=candidates[ids.index(self.current_id)]
+                if now-self.last_rotate>=duration(current,prefs):
+                    self.current_id=ids[(ids.index(self.current_id)+1)%len(ids)]
+                    self.last_rotate=now
+                event=candidates[ids.index(self.current_id)]
+                ident=self.current_id
         if settings.get("power", "on")=="off": return None
         profile=self.render(league,event,self.page)
         payload={"league":league,"event_id":ident,"profile":profile,"updated_at":time.time(),"mode":"live_virtual"}
