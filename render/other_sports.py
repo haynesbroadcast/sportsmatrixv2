@@ -11,6 +11,7 @@ from zoneinfo import ZoneInfo
 
 import requests
 from PIL import Image, ImageColor, ImageDraw, ImageFont
+from render.logo_contrast import paste_logo
 from render.pixel_font import center_text as bitmap_center
 
 BASE = Path(__file__).resolve().parent.parent
@@ -186,7 +187,7 @@ def render(event, league, output_path=None, *, sample=False):
         details = team.get("team") or {}
         icon = logo(details, league)
         if icon:
-            image.paste(icon, (x - icon.width // 2, 2), icon)
+            paste_logo(image, icon, x - icon.width // 2, 2)
         else:
             abbr = str(details.get("abbreviation") or details.get("shortDisplayName") or "???")[:4]
             centered(draw, x, 10, abbr, 11, WHITE, 44)

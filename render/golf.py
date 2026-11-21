@@ -62,6 +62,13 @@ def render_golf(board, settings, output_path, page=0):
     d.text((2, 1), _fit(d, title, title_font, 99), fill=accent, font=title_font)
     d.text((109, 1), right_header, fill=accent, font=small_font)
     d.line((1, 12, 126, 12), fill=accent, width=1)
+    # Global position, placed in the header divider instead of obscuring
+    # the fourth leaderboard row or its score cell.
+    if pages > 1:
+        for index in range(pages):
+            x = 111 + index * 4
+            d.rectangle((x, 11, x + 1, 12),
+                        fill=fg if index == page else "#526576")
 
     d.text((2, 14), "POS", fill="#8798a5", font=small_font)
     d.text((24, 14), "PLAYER", fill="#8798a5", font=small_font)

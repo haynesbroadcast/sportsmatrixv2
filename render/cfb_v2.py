@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
+from .logo_contrast import paste_logo
 from .pixel_font import center_text as bitmap_center
 from .timeout_pips import draw_timeouts
 from .nfl_v2 import compact_down
@@ -114,7 +115,7 @@ def render(event):
 
         icon = logo(team)
         if icon:
-            img.paste(icon, (x-icon.width//2, 8), icon)
+            paste_logo(img, icon, x-icon.width//2, 8)
         else:
             center(d, x, 17, team.get("abbreviation", "???")[:4], 10)
 

@@ -6,6 +6,7 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 from PIL import Image, ImageDraw, ImageFont
+from .logo_contrast import paste_logo
 from .pixel_font import center_text as bitmap_center
 
 BASE = Path(__file__).resolve().parent.parent
@@ -94,7 +95,7 @@ def render(event):
         icon = logo(c["team"])
         if icon:
             # Make full use of the team columns while preserving score space.
-            img.paste(icon, (x-icon.width//2, 1), icon)
+            paste_logo(img, icon, x-icon.width//2, 1)
         else:
             center(d, x, 14, c["team"].get("abbreviation", "???"), 10)
 

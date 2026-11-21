@@ -44,3 +44,19 @@ def composite_logo(canvas, logo, x, y, threshold=80):
 
     canvas.alpha_composite(logo, (x, y))
     return True
+
+
+def paste_logo(image, logo, x, y, threshold=80):
+    """RGB/RGBA adapter for the shared alpha-aware logo compositor.
+
+    Allows older score-first renderers to keep their existing ImageDraw
+    references and pixel layout while benefiting from the same contrast
+    protection as the NFL pregame artwork.
+    """
+    if image.mode == "RGBA":
+        return composite_logo(image, logo, x, y, threshold=threshold)
+    rgba = image.convert("RGBA")
+    drawn = composite_logo(rgba, logo, x, y, threshold=threshold)
+    if drawn:
+        image.paste(rgba.convert(image.mode))
+    return drawn

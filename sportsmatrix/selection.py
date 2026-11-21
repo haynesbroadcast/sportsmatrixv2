@@ -132,3 +132,72 @@ def nfl_weekend_pages(events, now=None):
                               "key": ("slate", tuple(str(e.get("id")) for e in group),
                                       index)})
     return pages
+
+
+def daily_matchup_pages(events, now=None):
+    """Non-NFL team sports: focus on the active local day, or next game day.
+
+    Unlike the NFL's Thursday–Monday broadcast week, NBA/NHL/CFB/soccer
+    calendars have different rhythms. Show all of today's games (including
+    completed games), then fall forward to the next scheduled game day.
+    Never mix unrelated calendar days into one slate. Games within 45
+    minutes of a window start use 3-up pages while still pregame; live/final
+    games keep their dedicated score-first screens.
+    """
+    from datetime import timezone, timedelta
+    from zoneinfo import ZoneInfo
+
+    pacific = ZoneInfo("America/Los_Angeles")
+    now = now or datetime.now(timezone.utc)
+    if now.tzinfo is None:
+        now = now.replace(tzinfo=timezone.utc)
+    today = now.astimezone(pacific).date()
+    valid = []
+    for event in events:
+        try:
+            start = datetime.fromisoformat(event["date"].replace("Z", "+00:00"))
+            local = start.astimezone(pacific)
+            state = event["status"]["type"]["state"]
+            if state not in ("pre", "in", "post"):
+                continue
+        except (KeyError, ValueError, TypeError, AttributeError):
+            continue
+        valid.append((local, state, event))
+    if not valid:
+        return []
+
+    # An overnight game is still relevant while live, even if it started
+    # before local midnight. Today's games win over a future schedule.
+    active = [(t, e) for t, state, e in valid
+              if t.date() == today or state == "in"]
+    if not active:
+        future_days = [t.date() for t, state, _ in valid
+                       if state == "pre" and t.date() > today]
+        if not future_days:
+            return []
+        focus = min(future_days)
+        active = [(t, e) for t, state, e in valid
+                  if t.date() == focus and state == "pre"]
+
+    active.sort(key=lambda pair: (pair[0], str(pair[1].get("id", ""))))
+    groups = []
+    for start, event in active:
+        if (not groups or start.date() != groups[-1][0].date()
+                or start - groups[-1][0] > timedelta(minutes=45)):
+            groups.append((start, [event]))
+        else:
+            groups[-1][1].append(event)
+
+    pages = []
+    for _, group in groups:
+        if len(group) == 1 or any(
+                e["status"]["type"]["state"] != "pre" for e in group):
+            for event in group:
+                pages.append({"kind": "game", "events": [event], "page": 0,
+                              "key": ("game", str(event.get("id")))})
+        else:
+            signature = tuple(str(e.get("id")) for e in group)
+            for index in range((len(group) + 2) // 3):
+                pages.append({"kind": "slate", "events": group, "page": index,
+                              "key": ("slate", signature, index)})
+    return pages
