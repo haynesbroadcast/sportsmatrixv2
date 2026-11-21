@@ -54,6 +54,7 @@ class LiveBoardMirrorTests(unittest.TestCase):
         with Image.open(io.BytesIO(response.data)) as image:
             self.assertEqual(image.size, (128, 64))
             self.assertEqual(image.getpixel((0, 0)), (31, 64, 128))
+        response.close()
 
     def test_mismatched_selected_league_is_never_mirrored(self):
         self.write_frame(league="cfb")
@@ -79,7 +80,11 @@ class LiveBoardMirrorTests(unittest.TestCase):
         self.assertEqual(self.client.get("/api/v1/board.png").status_code, 503)
 
     def test_ui_never_uses_fixture_endpoint_for_on_board(self):
-        html = self.client.get("/").get_data(as_text=True)
+        # Templates are loaded from the repository, while frame paths
+        # are patched into the temporary test directory.
+        real_root = Path(__file__).resolve().parents[1]
+        with patch("sportsmatrix.server.BASE", real_root):
+            html = create_app(self.root / "settings.json").test_client().get("/").get_data(as_text=True)
         self.assertIn("Exact current worker frame", html)
         self.assertIn("setInterval(refreshBoard, 5000)", html)
         self.assertIn("'/api/v1/board.png?t='", html)
