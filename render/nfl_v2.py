@@ -1,3 +1,5 @@
+from .logo_contrast import paste_logo
+from .game_background import game_background
 import io
 import json
 import re
@@ -108,7 +110,8 @@ def render(event):
     state = status["type"]["state"]
     situation = comp.get("situation") or {}
 
-    img = Image.new("RGB", (128, 64), "#000000")
+    img = (game_background(away["team"], home["team"], state)
+           if state in ("in", "post") else Image.new("RGB", (128, 64), "#000000"))
     d = ImageDraw.Draw(img)
     # HUB75 panel: keep text glyph edges pixel-sharp, not grayscale-antialiased.
     d.fontmode = "1"
@@ -120,7 +123,7 @@ def render(event):
 
         if icon:
             icon.thumbnail((38, 32), Image.Resampling.LANCZOS)
-            img.paste(icon, (x - icon.width // 2, 1), icon)
+            paste_logo(img, icon, x - icon.width // 2, 1)
         else:
             center(d, x, 13, team.get("abbreviation", "???")[:4], 10)
 
