@@ -3,6 +3,7 @@ import time
 from datetime import datetime, timedelta, timezone
 from zoneinfo import ZoneInfo
 from render.cfb_v2 import API, fetch, priority, render, OUTPUT
+from sportsmatrix.selection import ranked_cfb_games
 
 PT = ZoneInfo("America/Los_Angeles")
 
@@ -35,8 +36,9 @@ def relevant(events, now=None):
     upcoming.sort(key=priority)
     finals.sort(key=priority)
 
-    # Keep the most relevant games, not stale results.
-    return (live + upcoming + finals)[:10]
+    # Filter before returning to the worker: the previous ten-game cap
+    # could hide ranked matchups and bowls behind irrelevant games.
+    return ranked_cfb_games(live + upcoming + finals)
 
 def fetch_events():
     now = datetime.now(PT)
