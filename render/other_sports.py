@@ -1,3 +1,4 @@
+from render.game_background import game_background
 """Native 128x64 renderers for NBA, WNBA, MLB, MLS, NWSL and EPL.
 
 Use clear pixel text, black background and centered two-team compositions.
@@ -179,7 +180,8 @@ def render(event, league, output_path=None, *, sample=False):
     sport = SPORT[league]
     comp, away, home = competitors(event)
     state = event.get("status", {}).get("type", {}).get("state", "pre")
-    image = Image.new("RGB", (128, 64), "#000000")
+    image = (game_background(away.get("team"), home.get("team"), state)
+             if state in ("in", "post") else Image.new("RGB", (128, 64), "#000000"))
     draw = ImageDraw.Draw(image)
     draw.fontmode = "1"
 
