@@ -139,6 +139,9 @@ class VirtualWorker:
             ident=str(self.page)
         else:
             candidates=choose(self.events,prefs)
+            if league == "cfb":
+                from .selection import ranked_cfb_games
+                candidates = ranked_cfb_games(candidates)
             if league == "nfl":
                 from .selection import nfl_weekend_pages
                 from render.nfl_slate import PAGE_SECONDS
