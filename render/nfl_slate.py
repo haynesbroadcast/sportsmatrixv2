@@ -13,6 +13,7 @@ from PIL import Image, ImageColor, ImageDraw, ImageFilter
 
 from .nfl_v2 import BASE, CACHE, fetch
 from .pixel_font import draw_text, text_width
+from .logo_contrast import composite_logo
 
 OUTPUT = BASE / "output" / "nfl_slate.png"
 LOGO_CACHE = CACHE / "slate-v015"
@@ -109,20 +110,15 @@ def _rotated_time(image, events, page, total):
     strip = Image.new("RGB", (11, 64), "#03070e")
     first = datetime.fromisoformat(events[0]["date"].replace("Z", "+00:00")).astimezone(PT)
     hour = first.strftime("%I").lstrip("0")
-    if first.minute:
-        # Compact 1030A / 130P form preserves the day at native resolution.
-        clock = f"{hour}{first.minute:02d}{first.strftime('%p')[0]}"
-    else:
-        clock = f"{hour}{first.strftime('%p')}"
+    # Broad broadcast window labels are more readable than exact kickoffs:
+    # 1:05 PM and 1:25 PM both display as 1PM.
+    clock = f"{hour}{first.strftime('%p')}"
     label = first.strftime("%a").upper() + " " + clock  # SUN 10AM
     # Rotate native bitmap text: 8 chars use 47 vertical pixels.
     flat = Image.new("RGB", (text_width(label) + 2, 7), "#03070e")
     draw_text(flat, 1, 0, label, (245, 245, 245))
     turned = flat.transpose(Image.Transpose.ROTATE_90)
     strip.paste(turned, (2, 3))
-    for index in range(min(total, 3)):
-        ImageDraw.Draw(strip).rectangle((2 + index * 3, 61, 3 + index * 3, 62),
-                                       fill="#ffffff" if index == page else "#3b4b61")
     image.paste(strip, (0, 0))
 
 
@@ -130,10 +126,10 @@ def _place_logo(image, team, x, y):
     icon = team_logo(team)
     if icon is None:
         return False
-    layer = Image.new("RGBA", SIZE, (0, 0, 0, 0))
-    layer.paste(icon, (x + (22 - icon.width) // 2, y + (17 - icon.height) // 2))
-    image.alpha_composite(layer)
-    return True
+    return composite_logo(
+        image, icon,
+        x + (22 - icon.width) // 2,
+        y + (17 - icon.height) // 2)
 
 
 def render_slate(events, page=0, output=OUTPUT):
@@ -143,23 +139,25 @@ def render_slate(events, page=0, output=OUTPUT):
     pages = max(1, (len(events) + PER_PAGE - 1) // PER_PAGE)
     page %= pages
     subset = events[page * PER_PAGE:(page + 1) * PER_PAGE]
+    # Center sparse overflow pages while keeping identical 20px matchup rows.
+    row_offset = (PER_PAGE - len(subset)) * 21 // 2
     image = Image.new("RGB", SIZE, "#000000")
     for index, event in enumerate(subset):
         away, home = _competitors(event)
-        _gradient(image, index * 21, away, home)
+        _gradient(image, row_offset + index * 21, away, home)
     _rotated_time(image, events, page, pages)
     rgba = image.convert("RGBA")
     logo_ok = []
     for index, event in enumerate(subset):
         away, home = _competitors(event)
-        y = index * 21
+        y = row_offset + index * 21
         logo_ok.append((_place_logo(rgba, away, 13, y + 2),
                         _place_logo(rgba, home, 94, y + 2)))
     image = rgba.convert("RGB")
     d = ImageDraw.Draw(image)
     for index, event in enumerate(subset):
         away, home = _competitors(event)
-        y = index * 21
+        y = row_offset + index * 21
         if not logo_ok[index][0]:
             draw_text(image, 16, y + 7, away.get("abbreviation", "???")[:3], (255, 255, 255))
         if not logo_ok[index][1]:
@@ -172,7 +170,7 @@ def render_slate(events, page=0, output=OUTPUT):
         draw_text(image, 37, y + 6, away.get("abbreviation", "???")[:3], (255, 255, 255))
         draw_text(image, 72, y + 6, home.get("abbreviation", "???")[:3], (255, 255, 255))
         draw_text(image, 58, y + 6, "AT", (236, 196, 113))
-        if index < 2:
+        if index < len(subset) - 1:
             d.line((12, y + 20, 127, y + 20), fill=(84, 91, 108))
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
@@ -212,10 +210,9 @@ def render_feature(event, output=FEATURE_OUTPUT):
         if icon is None:
             continue
         icon.thumbnail((38, 32), Image.Resampling.LANCZOS)
-        layer = Image.new("RGBA", SIZE, (0, 0, 0, 0))
-        layer.paste(icon, (x + (38 - icon.width) // 2,
-                           7 + (32 - icon.height) // 2))
-        rgba.alpha_composite(layer)
+        composite_logo(rgba, icon,
+                       x + (38 - icon.width) // 2,
+                       7 + (32 - icon.height) // 2)
     image = rgba.convert("RGB")
     d = ImageDraw.Draw(image)
     d.line((0, 40, 127, 40), fill=(93, 100, 115))
@@ -223,7 +220,16 @@ def render_feature(event, output=FEATURE_OUTPUT):
     hour = start.strftime("%I").lstrip("0")
     clock = f"{hour}:{start.minute:02d}" if start.minute else hour
     clock += start.strftime("%p")
-    center_text(image, 64, 3, "NFL", (218, 196, 138))
+    # Use the actual broadcast identity rather than generic "NFL".
+    if start.weekday() == 0:
+        heading = "MONDAY"
+    elif start.weekday() == 6 and start.hour >= 17:
+        heading = "SNF"
+    elif start.weekday() == 3 and start.hour >= 17:
+        heading = "TNF"
+    else:
+        heading = start.strftime("%A").upper()
+    center_text(image, 64, 3, heading, (218, 196, 138))
     center_text(image, 64, 23, "VS", (245, 246, 249))
     center_text(image, 27, 47, away.get("abbreviation", "???")[:3], (255, 255, 255))
     center_text(image, 101, 47, home.get("abbreviation", "???")[:3], (255, 255, 255))

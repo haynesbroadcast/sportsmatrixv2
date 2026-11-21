@@ -40,7 +40,7 @@ class VirtualWorker:
             return fetch_golf_leaderboard()
         from .other_feeds import fetch_events
         return fetch_events(league)
-    def render(self, league, event, page=0):
+    def render(self, league, event, page=0, carousel=None):
         if event is None:
             from render.other_sports import render_no_games, OUTPUT
             render_no_games(league)
@@ -70,6 +70,9 @@ class VirtualWorker:
         from .preview import output_for
         profile = self.store.read().get("profile", "enhanced_128x64")
         image = output_for(profile, OUTPUT)
+        if league == "nfl" and carousel is not None:
+            from render.page_indicator import draw_page_indicator
+            draw_page_indicator(image, carousel[0], carousel[1])
         OUT.parent.mkdir(parents=True, exist_ok=True)
         with tempfile.NamedTemporaryFile(dir=OUT.parent, suffix=".png", delete=False) as f:
             temp = Path(f.name)
@@ -168,7 +171,9 @@ class VirtualWorker:
             if league != "nfl":
                 render_page = self.page
         if settings.get("power", "on")=="off": return None
-        profile=self.render(league,event,render_page if league == "nfl" else self.page)
+        profile=self.render(
+            league, event, render_page if league == "nfl" else self.page,
+            carousel=(self.page, len(pages)) if league == "nfl" else None)
         payload={"league":league,"event_id":ident,"profile":profile,"updated_at":time.time(),"mode":"live_virtual"}
         STATUS.parent.mkdir(parents=True, exist_ok=True)
         temp=STATUS.with_suffix(".tmp")

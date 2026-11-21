@@ -37,9 +37,9 @@ class WeekendCarouselTests(unittest.TestCase):
         self.assertEqual(len(pages), 11)
         self.assertEqual([p["kind"] for p in pages[:4]], ["game"] * 4)
         self.assertEqual([p["kind"] for p in pages[4:7]],
-                         ["slate", "slate", "game"])
+                         ["slate", "slate", "slate"])
         self.assertEqual([p["kind"] for p in pages[7:9]],
-                         ["slate", "game"])
+                         ["slate", "slate"])
 
     def test_friday_excludes_thursday_but_keeps_sunday_and_monday(self):
         now = datetime(2026, 11, 27, 8, 0, tzinfo=PT)
@@ -57,7 +57,7 @@ class WeekendCarouselTests(unittest.TestCase):
         self.assertEqual(pages[0]["kind"], "slate")
         self.assertEqual(pages[0]["page"], 0)
         self.assertEqual(pages[1]["page"], 1)
-        self.assertEqual(pages[2]["kind"], "game")  # seventh early game
+        self.assertEqual(pages[2]["kind"], "slate")  # seventh early game stays in slate style
         self.assertEqual(pages[-1]["events"][0]["id"], "mnf")
 
     def test_monday_only_monday(self):
