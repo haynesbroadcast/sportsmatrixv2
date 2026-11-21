@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from PIL import Image, ImageDraw
-from render.nfl_slate import prepare_logo, render_slate
+from render.nfl_slate import prepare_logo, render_slate, render_feature
 
 
 def event(i, state="pre"):
@@ -49,6 +49,29 @@ class SlateTests(unittest.TestCase):
             self.assertEqual(result.size, (128, 64))
         with self.assertRaises(ValueError):
             render_slate([])
+
+    def test_side_strip_identifies_day_not_pt(self):
+        sun = event(1)
+        mon = event(2)
+        sun["date"] = "2026-11-22T10:00:00-08:00"
+        mon["date"] = "2026-11-23T10:00:00-08:00"
+        with tempfile.TemporaryDirectory() as temp, patch(
+                "render.nfl_slate.team_logo", return_value=None):
+            a = render_slate([sun, sun], output=Path(temp) / "sun.png")
+            b = render_slate([mon, mon], output=Path(temp) / "mon.png")
+            self.assertNotEqual(a.crop((0, 0, 11, 58)).tobytes(),
+                                b.crop((0, 0, 11, 58)).tobytes())
+
+    def test_standalone_feature_is_native(self):
+        sample = event(1)
+        sample["date"] = "2026-11-22T17:20:00-08:00"
+        logo = Image.new("RGBA", (20, 20), (255, 100, 20, 220))
+        with tempfile.TemporaryDirectory() as temp, patch(
+                "render.nfl_v2.logo", return_value=logo):
+            result = render_feature(sample, Path(temp) / "feature.png")
+            self.assertEqual(result.size, (128, 64))
+            self.assertNotEqual(result.getpixel((5, 10)),
+                                result.getpixel((120, 10)))
 
     def test_worker_rotates_pregame_pages(self):
         from sportsmatrix.worker import VirtualWorker
