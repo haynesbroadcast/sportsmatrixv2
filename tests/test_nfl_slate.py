@@ -57,12 +57,19 @@ class SlateTests(unittest.TestCase):
             config.write_text(json.dumps({"league": "nfl", "power": "on",
                                           "profile": "enhanced_128x64"}))
             worker = VirtualWorker(config)
-            with patch.object(worker, "fetch", return_value=[event(i) for i in range(6)]), \
+            games = [event(i) for i in range(6)]
+            pages = [
+                {"kind": "slate", "events": games, "page": i,
+                 "key": ("slate", tuple(str(g["id"]) for g in games), i)}
+                for i in range(2)
+            ]
+            with patch.object(worker, "fetch", return_value=games), \
                  patch.object(worker, "render", return_value="enhanced_128x64"), \
+                 patch("sportsmatrix.selection.nfl_weekend_pages", return_value=pages), \
                  patch("sportsmatrix.worker.STATUS", Path(temp) / "state.json"), \
                  patch("sportsmatrix.worker.time.monotonic", side_effect=[100, 113]):
-                self.assertEqual(worker.tick()["event_id"], "slate-1-of-2")
-                self.assertEqual(worker.tick()["event_id"], "slate-2-of-2")
+                self.assertEqual(worker.tick()["event_id"], "nfl-weekend-1-of-2")
+                self.assertEqual(worker.tick()["event_id"], "nfl-weekend-2-of-2")
 
 
 if __name__ == "__main__":
