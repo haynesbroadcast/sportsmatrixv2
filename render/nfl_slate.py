@@ -178,3 +178,58 @@ def render_slate(events, page=0, output=OUTPUT):
     output.parent.mkdir(parents=True, exist_ok=True)
     image.save(output)
     return image
+
+
+FEATURE_OUTPUT = BASE / "output" / "nfl_feature.png"
+
+
+def render_feature(event, output=FEATURE_OUTPUT):
+    """Premium native-resolution single-matchup pregame screen.
+
+    Larger uncropped source logos and an uninterrupted team-color gradient
+    make TNF, SNF, MNF and holiday one-off games distinct from three-up slates.
+    Live and final games continue to use nfl_v2.render.
+    """
+    from .nfl_v2 import logo as full_logo
+    from .pixel_font import center_text
+
+    away, home = _competitors(event)
+    image = Image.new("RGB", SIZE, "#000000")
+    pixels = image.load()
+    left = _color(away.get("color"), (20, 62, 125))
+    right = _color(home.get("color"), (110, 40, 35))
+    for y in range(64):
+        for x in range(128):
+            t = max(0.0, min(1.0, (x + (y - 32) * 0.30) / 127))
+            t = t * t * (3 - 2 * t)
+            shade = 0.40 if y < 40 else 0.23
+            pixels[x, y] = tuple(
+                round((left[i] * (1 - t) + right[i] * t) * shade)
+                for i in range(3))
+    rgba = image.convert("RGBA")
+    for team, x in ((away, 8), (home, 82)):
+        icon = full_logo(team)
+        if icon is None:
+            continue
+        icon.thumbnail((38, 32), Image.Resampling.LANCZOS)
+        layer = Image.new("RGBA", SIZE, (0, 0, 0, 0))
+        layer.paste(icon, (x + (38 - icon.width) // 2,
+                           7 + (32 - icon.height) // 2))
+        rgba.alpha_composite(layer)
+    image = rgba.convert("RGB")
+    d = ImageDraw.Draw(image)
+    d.line((0, 40, 127, 40), fill=(93, 100, 115))
+    start = datetime.fromisoformat(event["date"].replace("Z", "+00:00")).astimezone(PT)
+    hour = start.strftime("%I").lstrip("0")
+    clock = f"{hour}:{start.minute:02d}" if start.minute else hour
+    clock += start.strftime("%p")
+    center_text(image, 64, 3, "NFL", (218, 196, 138))
+    center_text(image, 64, 23, "VS", (245, 246, 249))
+    center_text(image, 27, 47, away.get("abbreviation", "???")[:3], (255, 255, 255))
+    center_text(image, 101, 47, home.get("abbreviation", "???")[:3], (255, 255, 255))
+    center_text(image, 64, 43, start.strftime("%a").upper(), (231, 196, 122))
+    center_text(image, 64, 54, clock, (255, 255, 255))
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    image.save(output)
+    return image
