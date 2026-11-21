@@ -39,8 +39,8 @@ If tests pass, restart **the API service** to load the updated Flask
 routes and template. The worker and display do not need to restart:
 
 ```bash
-sudo systemctl restart sportsmatrix-v2-api
-systemctl is-active sportsmatrix-v2-api
+sudo systemctl restart sportsmatrix-v2-web
+systemctl is-active sportsmatrix-v2-web
 ```
 
 Reload Control Room in the browser (hard refresh if an old template
@@ -52,5 +52,5 @@ or hardware is inactive.
 
 ```bash
 git switch feature/v0.21-cfb-weekend-carousel
-sudo systemctl restart sportsmatrix-v2-api
+sudo systemctl restart sportsmatrix-v2-web
 ```
