@@ -62,6 +62,39 @@ class SlateTests(unittest.TestCase):
             self.assertNotEqual(a.crop((0, 0, 11, 58)).tobytes(),
                                 b.crop((0, 0, 11, 58)).tobytes())
 
+    def test_late_kickoff_uses_broadcast_hour_not_minutes(self):
+        one = event(1)
+        two = event(2)
+        one["date"] = "2026-11-22T13:05:00-08:00"
+        two["date"] = "2026-11-22T13:25:00-08:00"
+        with tempfile.TemporaryDirectory() as temp, patch(
+                "render.nfl_slate.team_logo", return_value=None):
+            a = render_slate([one, one], output=Path(temp) / "105.png")
+            b = render_slate([two, two], output=Path(temp) / "125.png")
+            self.assertEqual(a.crop((0, 0, 11, 58)).tobytes(),
+                             b.crop((0, 0, 11, 58)).tobytes())
+
+    def test_one_game_overflow_keeps_centered_slate_row(self):
+        games = [event(i) for i in range(7)]
+        with tempfile.TemporaryDirectory() as temp, patch(
+                "render.nfl_slate.team_logo", return_value=None):
+            frame = render_slate(games, 2, Path(temp) / "overflow.png")
+            self.assertEqual(frame.size, (128, 64))
+            self.assertEqual(frame.getpixel((20, 5)), (0, 0, 0))
+            self.assertNotEqual(frame.getpixel((20, 30)), (0, 0, 0))
+
+    def test_feature_header_reflects_broadcast(self):
+        mon = event(1)
+        sun = event(2)
+        mon["date"] = "2026-11-23T17:15:00-08:00"
+        sun["date"] = "2026-11-22T17:20:00-08:00"
+        with tempfile.TemporaryDirectory() as temp, patch(
+                "render.nfl_v2.logo", return_value=None):
+            monday = render_feature(mon, Path(temp) / "monday.png")
+            sunday = render_feature(sun, Path(temp) / "sunday.png")
+            self.assertNotEqual(monday.crop((35, 2, 95, 12)).tobytes(),
+                                sunday.crop((35, 2, 95, 12)).tobytes())
+
     def test_standalone_feature_is_native(self):
         sample = event(1)
         sample["date"] = "2026-11-22T17:20:00-08:00"
@@ -93,6 +126,7 @@ class SlateTests(unittest.TestCase):
                  patch("sportsmatrix.worker.time.monotonic", side_effect=[100, 113]):
                 self.assertEqual(worker.tick()["event_id"], "nfl-weekend-1-of-2")
                 self.assertEqual(worker.tick()["event_id"], "nfl-weekend-2-of-2")
+                self.assertEqual(worker.render.call_args.kwargs["carousel"], (1, 2))
 
 
 if __name__ == "__main__":
