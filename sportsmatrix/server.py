@@ -34,30 +34,81 @@ def create_app(config_path=None):
     def leagues():
         return jsonify(leagues=[vars(x) for x in LEAGUES.values()])
 
+    def live_board_state(settings):
+        """Only advertise a frame the connected panel is actively consuming.
+
+        A recorded fixture, stale worker frame, mismatched league/profile,
+        or disconnected/blank display is never a valid board mirror.
+        """
+        virtual = None
+        hardware = None
+        frame = BASE / "output" / "virtual_live.png"
+        try:
+            candidate = json.loads((BASE / "output" / "virtual_state.json").read_text())
+            age = time.time() - candidate.get("updated_at", 0)
+            if (0 <= age < 120 and candidate.get("league") == settings.get("league")
+                    and candidate.get("profile") == settings.get("profile")
+                    and frame.is_file()):
+                virtual = candidate
+        except (OSError, ValueError, TypeError, AttributeError):
+            pass
+        try:
+            candidate = json.loads((BASE / "output" / "hardware_state.json").read_text())
+            age = time.time() - candidate.get("updated_at", 0)
+            if 0 <= age < 15:
+                hardware = candidate
+        except (OSError, ValueError, TypeError, AttributeError):
+            pass
+        power = settings.get("power", "on")
+        schedule = settings.get("schedule", {})
+        scheduled_off = False
+        if power == "auto" and schedule.get("enabled"):
+            from datetime import datetime
+            from zoneinfo import ZoneInfo
+            try:
+                current = datetime.now(ZoneInfo(settings.get("timezone", "America/Los_Angeles"))).strftime("%H:%M")
+                start, end = schedule.get("on", "08:00"), schedule.get("off", "22:00")
+                active = (start <= current < end if start <= end
+                          else current >= start or current < end)
+                scheduled_off = not active
+            except (ValueError, TypeError, KeyError):
+                scheduled_off = True
+        active = bool(virtual and hardware and hardware.get("frame_active")
+                      and power != "off" and not scheduled_off)
+        return virtual, hardware, active
+
     @app.get("/api/v1/status")
     def status():
         state = store.read()
-        virtual_state = None
-        status_path = BASE / "output" / "virtual_state.json"
-        if status_path.exists():
-            try:
-                candidate = json.loads(status_path.read_text())
-                if time.time() - candidate.get("updated_at", 0) < 120:
-                    virtual_state = candidate
-            except (ValueError, OSError, TypeError): pass
-        hardware_status_path = BASE / "output" / "hardware_state.json"
-        hardware_status = None
-        if hardware_status_path.exists():
-            try:
-                candidate = json.loads(hardware_status_path.read_text())
-                if time.time() - candidate.get("updated_at", 0) < 15:
-                    hardware_status = candidate
-            except (ValueError, OSError, TypeError): pass
-        return jsonify(version=__version__, state=state, virtual_state=virtual_state, hardware_status=hardware_status,
-                       available_leagues=list(supported()),
-                       profiles={key: {"cols": size[0], "rows": size[1]} for key,size in PROFILES.items()},
-                       output="physical" if hardware_status else "virtual", hardware_active=bool(hardware_status),
-                       preview_mode="recorded_fixture")
+        virtual_state, hardware_status, board_active = live_board_state(state)
+        return jsonify(
+            version=__version__, state=state,
+            virtual_state=virtual_state, hardware_status=hardware_status,
+            board_active=board_active,
+            board_league=virtual_state.get("league") if board_active else None,
+            board_updated_at=virtual_state.get("updated_at") if board_active else None,
+            available_leagues=list(supported()),
+            profiles={key: {"cols": size[0], "rows": size[1]}
+                      for key, size in PROFILES.items()},
+            output="physical" if hardware_status else "virtual",
+            hardware_active=bool(hardware_status),
+            preview_mode="live_board_only",
+        )
+
+    @app.get("/api/v1/board.png")
+    def board_image():
+        """Exact worker framebuffer, only while the physical panel is active."""
+        _, _, active = live_board_state(store.read())
+        if not active:
+            response = jsonify(ok=False, error="No active physical scoreboard frame")
+            response.status_code = 503
+            response.headers["Cache-Control"] = "no-store"
+            return response
+        response = send_file(BASE / "output" / "virtual_live.png",
+                             mimetype="image/png", max_age=0)
+        response.headers["Cache-Control"] = "no-store, max-age=0"
+        response.headers["X-Content-Type-Options"] = "nosniff"
+        return response
 
     @app.put("/api/v1/settings")
     def settings():
