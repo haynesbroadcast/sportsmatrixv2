@@ -45,7 +45,12 @@ class OtherSportsTests(unittest.TestCase):
                     render(event(), league, path)
                     with Image.open(path) as im:
                         self.assertEqual(im.size, (128, 64))
-                        self.assertEqual(im.getpixel((0, 0)), (0, 0, 0))
+                        if league == "mlb":
+                            self.assertEqual(im.getpixel((0, 0)), (0, 0, 0))
+                        else:
+                            # Live team-sport screens now carry the
+                            # same away/home fade as their pregame pages.
+                            self.assertNotEqual(im.getpixel((0, 0)), (0, 0, 0))
                         self.assertGreater(len(im.getcolors(128 * 64)), 1)
                     for profile, shape in (("enhanced_128x64", (128, 64)), ("compact_64x32", (64, 32))):
                         data = render_fixture(league, profile)

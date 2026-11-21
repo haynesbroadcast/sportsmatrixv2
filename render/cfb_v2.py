@@ -1,3 +1,4 @@
+from .game_background import game_background
 import io
 import json
 import sys
@@ -101,7 +102,8 @@ def render(event):
     state = status["type"]["state"]
     situation = comp.get("situation") or {}
 
-    img = Image.new("RGB", (128, 64), "#000000")
+    img = (game_background(away["team"], home["team"], state)
+           if state in ("in", "post") else Image.new("RGB", (128, 64), "#000000"))
     d = ImageDraw.Draw(img)
     # HUB75 panel: keep text glyph edges pixel-sharp, not grayscale-antialiased.
     d.fontmode = "1"
