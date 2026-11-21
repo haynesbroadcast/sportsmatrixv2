@@ -201,3 +201,20 @@ def daily_matchup_pages(events, now=None):
                 pages.append({"kind": "slate", "events": group, "page": index,
                               "key": ("slate", signature, index)})
     return pages
+
+
+def ranked_cfb_games(events):
+    """Only CFB matchups with at least one ESPN Top 25 team.
+
+    No rivalry, bowl, championship, conference or upset exceptions.
+    Missing/invalid ranks do not qualify.
+    """
+    from render.cfb_v2 import rank
+    return [
+        event for event in events
+        if any(
+            rank(competitor) is not None
+            for competition in event.get("competitions", [])
+            for competitor in competition.get("competitors", [])
+        )
+    ]
