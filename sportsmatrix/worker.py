@@ -175,9 +175,10 @@ class VirtualWorker:
                     render_page = 0
                 ident = f"nfl-weekend-{self.page + 1}-of-{len(pages)}"
             elif league in TEAM_SLATE_LEAGUES:
-                from .selection import daily_matchup_pages
+                from .selection import cfb_weekend_pages, daily_matchup_pages
                 from render.matchup_slate import PAGE_SECONDS
-                pages = daily_matchup_pages(candidates)
+                pages = (cfb_weekend_pages(candidates) if league == "cfb"
+                         else daily_matchup_pages(candidates))
                 if not pages:
                     return None
                 signature = tuple(item["key"] for item in pages)
@@ -202,7 +203,8 @@ class VirtualWorker:
                 else:
                     event = current["events"][0]
                     render_page = 0
-                ident = f"{league}-day-{self.page + 1}-of-{len(pages)}"
+                window = "weekend" if league == "cfb" else "day"
+                ident = f"{league}-{window}-{self.page + 1}-of-{len(pages)}"
             else:
                 ids=[str(e.get("id")) for e in candidates]
                 if not ids:return None
