@@ -126,15 +126,9 @@ def nfl_weekend_pages(events, now=None):
                               "key": ("game", str(event.get("id")))})
         else:
             for index in range((len(group) + 2) // 3):
-                chunk = group[index * 3:(index + 1) * 3]
-                if len(chunk) == 1:
-                    # A fourth or seventh game deserves a full screen rather
-                    # than a nearly empty three-row slate.
-                    event = chunk[0]
-                    pages.append({"kind": "game", "events": [event], "page": 0,
-                                  "key": ("game", str(event.get("id")))})
-                else:
-                    pages.append({"kind": "slate", "events": group, "page": index,
-                                  "key": ("slate", tuple(str(e.get("id")) for e in group),
-                                          index)})
+                # Even a lone overflow matchup keeps the slate visual
+                # treatment. Only genuinely standalone windows go full-screen.
+                pages.append({"kind": "slate", "events": group, "page": index,
+                              "key": ("slate", tuple(str(e.get("id")) for e in group),
+                                      index)})
     return pages
