@@ -123,12 +123,12 @@ class WorkerTests(unittest.TestCase):
             pages = [{"kind": "slate", "events": games, "page": i,
                       "key": ("slate", ("0", "1", "2", "3"), i)}
                      for i in range(2)]
-            with patch.object(worker, "fetch", return_value=games), \\
+            with patch.object(worker, "fetch", return_value=games), \
                  patch.object(worker, "render",
-                              return_value="enhanced_128x64") as render, \\
+                              return_value="enhanced_128x64") as render, \
                  patch("sportsmatrix.selection.daily_matchup_pages",
-                       return_value=pages), \\
-                 patch("sportsmatrix.worker.STATUS", Path(tmp) / "state.json"), \\
+                       return_value=pages), \
+                 patch("sportsmatrix.worker.STATUS", Path(tmp) / "state.json"), \
                  patch("sportsmatrix.worker.time.monotonic",
                        side_effect=[100, 113]):
                 self.assertEqual(worker.tick()["event_id"], "nba-day-1-of-2")
@@ -142,10 +142,10 @@ class WorkerTests(unittest.TestCase):
             config.write_text(json.dumps({"league": "golf", "power": "on"}))
             worker = VirtualWorker(config)
             board = {"players": [{"name": "P"}] * 8}
-            with patch.object(worker, "fetch", return_value=board), \\
+            with patch.object(worker, "fetch", return_value=board), \
                  patch.object(worker, "render",
-                              return_value="enhanced_128x64") as render, \\
-                 patch("sportsmatrix.worker.STATUS", Path(tmp) / "state.json"), \\
+                              return_value="enhanced_128x64") as render, \
+                 patch("sportsmatrix.worker.STATUS", Path(tmp) / "state.json"), \
                  patch("sportsmatrix.worker.time.monotonic",
                        side_effect=[100]):
                 worker.tick()
