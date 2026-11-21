@@ -25,9 +25,7 @@ class WeekendCarouselTests(unittest.TestCase):
             *[game(f"sun-pm-{i}", 29, 13, 25) for i in range(4)],
             game("snf", 29, 17, 20),
             game("mnf", 30, 17, 15),
-            game("next-thu", 26, 10),  # duplicate ID deliberately avoided below
         ]
-        self.events.pop()  # next week's date is in December; tested separately.
 
     def test_wednesday_has_all_remaining_windows(self):
         now = datetime(2026, 11, 25, 12, 0, tzinfo=PT)
