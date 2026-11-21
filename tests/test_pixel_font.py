@@ -72,7 +72,10 @@ class BitmapTests(unittest.TestCase):
                     renderer.render(event)
                 with Image.open(output) as img:
                     self.assertEqual(img.size, (128, 64))
-                    self.assertEqual(img.getpixel((0, 63)), (0, 0, 0))
+                    from render.game_background import game_background
+                    away, home = event["competitions"][0]["competitors"]
+                    backdrop = game_background(away["team"], home["team"])
+                    self.assertEqual(img.getpixel((0, 63)), backdrop.getpixel((0, 63)))
                     if renderer in (nfl_v2, cfb_v2):
                         self.assertEqual(img.getpixel((0, 42)), (233, 197, 108))
                         self.assertEqual(img.getpixel((0, 47)), (233, 197, 108))
@@ -81,8 +84,8 @@ class BitmapTests(unittest.TestCase):
                         self.assertEqual(img.getpixel((124, 47)), (47, 39, 22))
                         self.assertEqual(img.getpixel((124, 52)), (47, 39, 22))
                         # No separate timeout band below the score.
-                        self.assertEqual(img.getpixel((0, 60)), (0, 0, 0))
-                        self.assertEqual(img.getpixel((127, 60)), (0, 0, 0))
+                        self.assertEqual(img.getpixel((0, 60)), backdrop.getpixel((0, 60)))
+                        self.assertEqual(img.getpixel((127, 60)), backdrop.getpixel((127, 60)))
 
 
 if __name__ == "__main__":
