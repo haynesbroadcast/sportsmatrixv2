@@ -108,14 +108,18 @@ def _gradient(image, y0, away, home):
 def _rotated_time(image, events, page, total):
     strip = Image.new("RGB", (11, 64), "#03070e")
     first = datetime.fromisoformat(events[0]["date"].replace("Z", "+00:00")).astimezone(PT)
-    label = first.strftime("%I%p").lstrip("0")  # e.g. 10AM, 1PM
-    # The 5x7 bitmap alphabet becomes 7px wide when rotated.
+    hour = first.strftime("%I").lstrip("0")
+    if first.minute:
+        # Compact 1030A / 130P form preserves the day at native resolution.
+        clock = f"{hour}{first.minute:02d}{first.strftime('%p')[0]}"
+    else:
+        clock = f"{hour}{first.strftime('%p')}"
+    label = first.strftime("%a").upper() + " " + clock  # SUN 10AM
+    # Rotate native bitmap text: 8 chars use 47 vertical pixels.
     flat = Image.new("RGB", (text_width(label) + 2, 7), "#03070e")
     draw_text(flat, 1, 0, label, (245, 245, 245))
     turned = flat.transpose(Image.Transpose.ROTATE_90)
-    strip.paste(turned, (2, 5))
-    draw_text(strip, 0, 43, "P", (172, 184, 200), spacing=0)
-    draw_text(strip, 0, 51, "T", (172, 184, 200), spacing=0)
+    strip.paste(turned, (2, 3))
     for index in range(min(total, 3)):
         ImageDraw.Draw(strip).rectangle((2 + index * 3, 61, 3 + index * 3, 62),
                                        fill="#ffffff" if index == page else "#3b4b61")
@@ -160,9 +164,11 @@ def render_slate(events, page=0, output=OUTPUT):
             draw_text(image, 16, y + 7, away.get("abbreviation", "???")[:3], (255, 255, 255))
         if not logo_ok[index][1]:
             draw_text(image, 96, y + 7, home.get("abbreviation", "???")[:3], (255, 255, 255))
-        # Dark backing makes 5x7 glyphs readable over any team palette.
-        d.rectangle((35, y + 5, 55, y + 14), fill=(5, 9, 16))
-        d.rectangle((70, y + 5, 90, y + 14), fill=(5, 9, 16))
+        # Pixel shadow instead of the v0.15 solid black acronym boxes.
+        # Keep gradients continuous behind the text.
+        draw_text(image, 38, y + 7, away.get("abbreviation", "???")[:3], (4, 8, 14))
+        draw_text(image, 73, y + 7, home.get("abbreviation", "???")[:3], (4, 8, 14))
+        draw_text(image, 59, y + 7, "AT", (4, 8, 14))
         draw_text(image, 37, y + 6, away.get("abbreviation", "???")[:3], (255, 255, 255))
         draw_text(image, 72, y + 6, home.get("abbreviation", "???")[:3], (255, 255, 255))
         draw_text(image, 58, y + 6, "AT", (236, 196, 113))
