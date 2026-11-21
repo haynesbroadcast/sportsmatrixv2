@@ -50,6 +50,10 @@ class VirtualWorker:
         elif league == "nfl" and isinstance(event, list):
             from render.nfl_slate import render_slate, OUTPUT
             render_slate(event, page=page)
+        elif league == "nfl" and event.get("status", {}).get("type", {}).get("state") == "pre":
+            from render.nfl_slate import render_feature, FEATURE_OUTPUT
+            render_feature(event)
+            OUTPUT = FEATURE_OUTPUT
         elif league == "nfl":
             from render.nfl_v2 import render, OUTPUT
             render(event)
