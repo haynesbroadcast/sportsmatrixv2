@@ -201,3 +201,25 @@ def daily_matchup_pages(events, now=None):
                 pages.append({"kind": "slate", "events": group, "page": index,
                               "key": ("slate", signature, index)})
     return pages
+
+
+def ranked_cfb_games(events):
+    """CFB: at least one Top 25 team, plus every postseason bowl game.
+
+    ESPN's FBS season type 3 covers bowl season and the College Football
+    Playoff, including its non-bowl first round. There are no rivalry or
+    regular-season championship exceptions.
+    """
+    from render.cfb_v2 import rank
+
+    def qualifies(event):
+        season = event.get("season") or {}
+        if str(season.get("type", "")) == "3":
+            return True
+        return any(
+            rank(competitor) is not None
+            for competition in event.get("competitions", [])
+            for competitor in competition.get("competitors", [])
+        )
+
+    return [event for event in events if qualifies(event)]
