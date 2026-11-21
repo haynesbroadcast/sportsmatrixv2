@@ -135,6 +135,7 @@ class VirtualWorker:
                 self.page=(self.page+1)%pages
                 self.last_rotate=now
             event=board
+            render_page=self.page
             ident=str(self.page)
         else:
             candidates=choose(self.events,prefs)
