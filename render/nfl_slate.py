@@ -108,14 +108,18 @@ def _gradient(image, y0, away, home):
 def _rotated_time(image, events, page, total):
     strip = Image.new("RGB", (11, 64), "#03070e")
     first = datetime.fromisoformat(events[0]["date"].replace("Z", "+00:00")).astimezone(PT)
-    label = first.strftime("%I%p").lstrip("0")  # e.g. 10AM, 1PM
-    # The 5x7 bitmap alphabet becomes 7px wide when rotated.
+    hour = first.strftime("%I").lstrip("0")
+    if first.minute:
+        # Compact 1030A / 130P form preserves the day at native resolution.
+        clock = f"{hour}{first.minute:02d}{first.strftime('%p')[0]}"
+    else:
+        clock = f"{hour}{first.strftime('%p')}"
+    label = first.strftime("%a").upper() + " " + clock  # SUN 10AM
+    # Rotate native bitmap text: 8 chars use 47 vertical pixels.
     flat = Image.new("RGB", (text_width(label) + 2, 7), "#03070e")
     draw_text(flat, 1, 0, label, (245, 245, 245))
     turned = flat.transpose(Image.Transpose.ROTATE_90)
-    strip.paste(turned, (2, 5))
-    draw_text(strip, 0, 43, "P", (172, 184, 200), spacing=0)
-    draw_text(strip, 0, 51, "T", (172, 184, 200), spacing=0)
+    strip.paste(turned, (2, 3))
     for index in range(min(total, 3)):
         ImageDraw.Draw(strip).rectangle((2 + index * 3, 61, 3 + index * 3, 62),
                                        fill="#ffffff" if index == page else "#3b4b61")
@@ -160,14 +164,71 @@ def render_slate(events, page=0, output=OUTPUT):
             draw_text(image, 16, y + 7, away.get("abbreviation", "???")[:3], (255, 255, 255))
         if not logo_ok[index][1]:
             draw_text(image, 96, y + 7, home.get("abbreviation", "???")[:3], (255, 255, 255))
-        # Dark backing makes 5x7 glyphs readable over any team palette.
-        d.rectangle((35, y + 5, 55, y + 14), fill=(5, 9, 16))
-        d.rectangle((70, y + 5, 90, y + 14), fill=(5, 9, 16))
+        # Pixel shadow instead of the v0.15 solid black acronym boxes.
+        # Keep gradients continuous behind the text.
+        draw_text(image, 38, y + 7, away.get("abbreviation", "???")[:3], (4, 8, 14))
+        draw_text(image, 73, y + 7, home.get("abbreviation", "???")[:3], (4, 8, 14))
+        draw_text(image, 59, y + 7, "AT", (4, 8, 14))
         draw_text(image, 37, y + 6, away.get("abbreviation", "???")[:3], (255, 255, 255))
         draw_text(image, 72, y + 6, home.get("abbreviation", "???")[:3], (255, 255, 255))
         draw_text(image, 58, y + 6, "AT", (236, 196, 113))
         if index < 2:
             d.line((12, y + 20, 127, y + 20), fill=(84, 91, 108))
+    output = Path(output)
+    output.parent.mkdir(parents=True, exist_ok=True)
+    image.save(output)
+    return image
+
+
+FEATURE_OUTPUT = BASE / "output" / "nfl_feature.png"
+
+
+def render_feature(event, output=FEATURE_OUTPUT):
+    """Premium native-resolution single-matchup pregame screen.
+
+    Larger uncropped source logos and an uninterrupted team-color gradient
+    make TNF, SNF, MNF and holiday one-off games distinct from three-up slates.
+    Live and final games continue to use nfl_v2.render.
+    """
+    from .nfl_v2 import logo as full_logo
+    from .pixel_font import center_text
+
+    away, home = _competitors(event)
+    image = Image.new("RGB", SIZE, "#000000")
+    pixels = image.load()
+    left = _color(away.get("color"), (20, 62, 125))
+    right = _color(home.get("color"), (110, 40, 35))
+    for y in range(64):
+        for x in range(128):
+            t = max(0.0, min(1.0, (x + (y - 32) * 0.30) / 127))
+            t = t * t * (3 - 2 * t)
+            shade = 0.40 if y < 40 else 0.23
+            pixels[x, y] = tuple(
+                round((left[i] * (1 - t) + right[i] * t) * shade)
+                for i in range(3))
+    rgba = image.convert("RGBA")
+    for team, x in ((away, 8), (home, 82)):
+        icon = full_logo(team)
+        if icon is None:
+            continue
+        icon.thumbnail((38, 32), Image.Resampling.LANCZOS)
+        layer = Image.new("RGBA", SIZE, (0, 0, 0, 0))
+        layer.paste(icon, (x + (38 - icon.width) // 2,
+                           7 + (32 - icon.height) // 2))
+        rgba.alpha_composite(layer)
+    image = rgba.convert("RGB")
+    d = ImageDraw.Draw(image)
+    d.line((0, 40, 127, 40), fill=(93, 100, 115))
+    start = datetime.fromisoformat(event["date"].replace("Z", "+00:00")).astimezone(PT)
+    hour = start.strftime("%I").lstrip("0")
+    clock = f"{hour}:{start.minute:02d}" if start.minute else hour
+    clock += start.strftime("%p")
+    center_text(image, 64, 3, "NFL", (218, 196, 138))
+    center_text(image, 64, 23, "VS", (245, 246, 249))
+    center_text(image, 27, 47, away.get("abbreviation", "???")[:3], (255, 255, 255))
+    center_text(image, 101, 47, home.get("abbreviation", "???")[:3], (255, 255, 255))
+    center_text(image, 64, 43, start.strftime("%a").upper(), (231, 196, 122))
+    center_text(image, 64, 54, clock, (255, 255, 255))
     output = Path(output)
     output.parent.mkdir(parents=True, exist_ok=True)
     image.save(output)

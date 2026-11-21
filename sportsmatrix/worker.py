@@ -50,6 +50,10 @@ class VirtualWorker:
         elif league == "nfl" and isinstance(event, list):
             from render.nfl_slate import render_slate, OUTPUT
             render_slate(event, page=page)
+        elif league == "nfl" and event.get("status", {}).get("type", {}).get("state") == "pre":
+            from render.nfl_slate import render_feature, FEATURE_OUTPUT
+            render_feature(event)
+            OUTPUT = FEATURE_OUTPUT
         elif league == "nfl":
             from render.nfl_v2 import render, OUTPUT
             render(event)
@@ -83,6 +87,7 @@ class VirtualWorker:
         if league != self.league:
             self.league, self.events, self.current_id, self.last_fetch, self.last_rotate = league, [], None, 0, 0
             self.page, self.slate_signature = 0, None
+            self.nfl_page_key = None
         # Re-fetch all games every five minutes; update at 15 seconds while live.
         live = league == "golf" or (isinstance(self.events, list) and any(e.get("status",{}).get("type",{}).get("state")=="in" for e in self.events))
         interval = 15 if live else 300
@@ -118,30 +123,40 @@ class VirtualWorker:
         else:
             candidates=choose(self.events,prefs)
             if league == "nfl":
-                from .selection import nfl_broadcast_window
-                candidates=nfl_broadcast_window(candidates)
-            if not candidates:return None
-            # Pregame windows show three matchups per 128x64 page. Keep the
-            # existing full-screen renderer for live games, finals and single
-            # matchups, so scores and game situations are never hidden.
-            slate = (league == "nfl" and len(candidates) > 1 and
-                     all(e.get("status", {}).get("type", {}).get("state") == "pre"
-                         for e in candidates))
-            if slate:
-                from render.nfl_slate import PER_PAGE, PAGE_SECONDS
-                signature = tuple(str(e.get("id")) for e in candidates)
-                pages = (len(candidates) + PER_PAGE - 1) // PER_PAGE
+                from .selection import nfl_weekend_pages
+                from render.nfl_slate import PAGE_SECONDS
+                pages = nfl_weekend_pages(candidates)
+                if not pages:
+                    return None
+                signature = tuple(item["key"] for item in pages)
                 if signature != self.slate_signature:
+                    # Preserve the current page if a background ESPN refresh
+                    # changes unrelated game details without changing the
+                    # actual carousel order.
+                    old_key = getattr(self, "nfl_page_key", None)
+                    self.page = next(
+                        (i for i, item in enumerate(pages) if item["key"] == old_key),
+                        0)
                     self.slate_signature = signature
-                    self.page, self.last_rotate = 0, now
-                elif now - self.last_rotate >= PAGE_SECONDS:
-                    self.page = (self.page + 1) % pages
                     self.last_rotate = now
-                event = candidates
-                ident = f"slate-{self.page + 1}-of-{pages}"
+                current = pages[self.page]
+                seconds = (PAGE_SECONDS if current["kind"] == "slate"
+                           else duration(current["events"][0], prefs))
+                if now - self.last_rotate >= seconds:
+                    self.page = (self.page + 1) % len(pages)
+                    self.last_rotate = now
+                    current = pages[self.page]
+                self.nfl_page_key = current["key"]
+                if current["kind"] == "slate":
+                    event = current["events"]
+                    render_page = current["page"]
+                else:
+                    event = current["events"][0]
+                    render_page = 0
+                ident = f"nfl-weekend-{self.page + 1}-of-{len(pages)}"
             else:
-                self.slate_signature = None
                 ids=[str(e.get("id")) for e in candidates]
+                if not ids:return None
                 if self.current_id not in ids:
                     self.current_id=ids[0];self.last_rotate=now
                 current=candidates[ids.index(self.current_id)]
@@ -150,8 +165,10 @@ class VirtualWorker:
                     self.last_rotate=now
                 event=candidates[ids.index(self.current_id)]
                 ident=self.current_id
+            if league != "nfl":
+                render_page = self.page
         if settings.get("power", "on")=="off": return None
-        profile=self.render(league,event,self.page)
+        profile=self.render(league,event,render_page if league == "nfl" else self.page)
         payload={"league":league,"event_id":ident,"profile":profile,"updated_at":time.time(),"mode":"live_virtual"}
         STATUS.parent.mkdir(parents=True, exist_ok=True)
         temp=STATUS.with_suffix(".tmp")

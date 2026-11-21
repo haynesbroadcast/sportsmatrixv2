@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 from PIL import Image, ImageDraw
-from render.nfl_slate import prepare_logo, render_slate
+from render.nfl_slate import prepare_logo, render_slate, render_feature
 
 
 def event(i, state="pre"):
@@ -50,6 +50,29 @@ class SlateTests(unittest.TestCase):
         with self.assertRaises(ValueError):
             render_slate([])
 
+    def test_side_strip_identifies_day_not_pt(self):
+        sun = event(1)
+        mon = event(2)
+        sun["date"] = "2026-11-22T10:00:00-08:00"
+        mon["date"] = "2026-11-23T10:00:00-08:00"
+        with tempfile.TemporaryDirectory() as temp, patch(
+                "render.nfl_slate.team_logo", return_value=None):
+            a = render_slate([sun, sun], output=Path(temp) / "sun.png")
+            b = render_slate([mon, mon], output=Path(temp) / "mon.png")
+            self.assertNotEqual(a.crop((0, 0, 11, 58)).tobytes(),
+                                b.crop((0, 0, 11, 58)).tobytes())
+
+    def test_standalone_feature_is_native(self):
+        sample = event(1)
+        sample["date"] = "2026-11-22T17:20:00-08:00"
+        logo = Image.new("RGBA", (20, 20), (255, 100, 20, 220))
+        with tempfile.TemporaryDirectory() as temp, patch(
+                "render.nfl_v2.logo", return_value=logo):
+            result = render_feature(sample, Path(temp) / "feature.png")
+            self.assertEqual(result.size, (128, 64))
+            self.assertNotEqual(result.getpixel((5, 10)),
+                                result.getpixel((120, 10)))
+
     def test_worker_rotates_pregame_pages(self):
         from sportsmatrix.worker import VirtualWorker
         with tempfile.TemporaryDirectory() as temp:
@@ -57,12 +80,19 @@ class SlateTests(unittest.TestCase):
             config.write_text(json.dumps({"league": "nfl", "power": "on",
                                           "profile": "enhanced_128x64"}))
             worker = VirtualWorker(config)
-            with patch.object(worker, "fetch", return_value=[event(i) for i in range(6)]), \
+            games = [event(i) for i in range(6)]
+            pages = [
+                {"kind": "slate", "events": games, "page": i,
+                 "key": ("slate", tuple(str(g["id"]) for g in games), i)}
+                for i in range(2)
+            ]
+            with patch.object(worker, "fetch", return_value=games), \
                  patch.object(worker, "render", return_value="enhanced_128x64"), \
+                 patch("sportsmatrix.selection.nfl_weekend_pages", return_value=pages), \
                  patch("sportsmatrix.worker.STATUS", Path(temp) / "state.json"), \
                  patch("sportsmatrix.worker.time.monotonic", side_effect=[100, 113]):
-                self.assertEqual(worker.tick()["event_id"], "slate-1-of-2")
-                self.assertEqual(worker.tick()["event_id"], "slate-2-of-2")
+                self.assertEqual(worker.tick()["event_id"], "nfl-weekend-1-of-2")
+                self.assertEqual(worker.tick()["event_id"], "nfl-weekend-2-of-2")
 
 
 if __name__ == "__main__":
