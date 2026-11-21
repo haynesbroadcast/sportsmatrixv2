@@ -134,6 +134,19 @@ def nfl_weekend_pages(events, now=None):
     return pages
 
 
+
+def cfb_weekend_pages(events, now=None):
+    """Show every eligible CFB game through Monday, not just today's games.
+
+    Reuse the established football viewing-week paging: chronological
+    kickoff windows, 3-up pregame slates, and dedicated live/final
+    score-first screens. Tuesday starts the next viewing week, which
+    also works for midweek bowl season. Ranked/bowl eligibility is
+    handled separately by ranked_cfb_games.
+    """
+    return nfl_weekend_pages(events, now)
+
+
 def daily_matchup_pages(events, now=None):
     """Non-NFL team sports: focus on the active local day, or next game day.
 
